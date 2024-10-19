@@ -6,7 +6,7 @@
 	"groups": [
 		{
             "name":"LiveTv",
-            "url":"http://wafy.eu.org:56880/livetv.w3u",
+            "url":"http://wafy.pp.ua:56880/livetv.w3u",
 			"image":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ_dgKtA6aKRRqqWsm0fuK_GhC-F4ITX5xXCw&s"
 		},
       
