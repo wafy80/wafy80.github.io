@@ -6,7 +6,7 @@
     "groups": [
         {
             "name":"LiveTv",
-            "url":"http://wafy.eu.org:56880/livetv.w3u",
+            "url":"http://wafy.pp.ua:56880/livetv.w3u",
             "image":"https://cdn.livetv800.me/img/logo_en.jpg"
         }
     ],
@@ -15,7 +15,7 @@
             "name":"Project",
             "image":"https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png",
             "embed":true,
-            "url":"https://github.com/Wafy80/livetv_w3u"
+            "url":"https://github.com/wafy80/livetv"
         }
     ]
 }
