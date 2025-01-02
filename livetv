@@ -1,13 +1,18 @@
 {
     "name": "LiveTv",
     "url":"https://wafy80.github.io/livetv",
-    "author": "https://github.com/Wafy80/livetv",
+    "author": "https://github.com/wafy80/livetv",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ_dgKtA6aKRRqqWsm0fuK_GhC-F4ITX5xXCw&s",
     "groups": [
         {
             "name":"LiveTv",
             "url":"http://wafy.pp.ua:56880/livetv.w3u",
             "image":"https://cdn.livetv800.me/img/logo_en.jpg"
+        },
+        {
+            "name":"Channels",
+            "url":"http://wafy.eu.org:56880/search.m3u",
+            "image":"https://play-lh.googleusercontent.com/daJbjIyFdJ_pMOseXNyfZuy2mKOskuelsyUyj6AcGb0rV0sJS580ViqOTcSi-A1BUnI"
         }
     ],
     "stations": [
