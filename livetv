@@ -6,12 +6,12 @@
     "groups": [
         {
             "name":"LiveTv",
-            "url":"http://wafy.pp.ua:56880/livetv.w3u",
+            "url":"http://tv.w80.it/w3u",
             "image":"https://cdn.livetv800.me/img/logo_en.jpg"
         },
         {
             "name":"Channels",
-            "url":"http://wafy.eu.org:56880/search.m3u",
+            "url":"http://tv.w80.it/m3u",
             "image":"https://play-lh.googleusercontent.com/daJbjIyFdJ_pMOseXNyfZuy2mKOskuelsyUyj6AcGb0rV0sJS580ViqOTcSi-A1BUnI"
         }
     ],
