@@ -6,7 +6,7 @@
     "groups": [
         {
             "name":"LiveTv",
-            "url":"http://tv.w80.it/w3u",
+            "url":"https://tv.w80.it/w3u",
             "image":"https://cdn.livetv800.me/img/logo_en.jpg"
         },
         {
@@ -20,7 +20,7 @@
             "name":"Update",
             "image":"https://png.pngtree.com/png-vector/20220611/ourmid/pngtree-update-icon-concept-in-flat-style-on-blue-background-png-image_4825223.png",
             "embed":true,
-            "url":"https://github.com/wafy80/livetv"
+            "url":"https://tv.w80.it/update"
         },
         {
             "name":"Project",
