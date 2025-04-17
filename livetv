@@ -17,6 +17,12 @@
     ],
     "stations": [
         {
+            "name":"Update",
+            "image":"https://png.pngtree.com/png-vector/20220611/ourmid/pngtree-update-icon-concept-in-flat-style-on-blue-background-png-image_4825223.png",
+            "embed":true,
+            "url":"https://github.com/wafy80/livetv"
+        },
+        {
             "name":"Project",
             "image":"https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png",
             "embed":true,
