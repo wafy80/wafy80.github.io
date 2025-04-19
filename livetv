@@ -17,10 +17,10 @@
     ],
     "stations": [
         {
-            "name":"Update",
-            "image":"https://png.pngtree.com/png-vector/20220611/ourmid/pngtree-update-icon-concept-in-flat-style-on-blue-background-png-image_4825223.png",
+            "name":"Log",
+            "image":"https://cdn3.iconfinder.com/data/icons/file-type-11/64/document-file-application-label-type-data_39-512.png",
             "embed":true,
-            "url":"https://tv.w80.it/update"
+            "url":"https://tv.w80.it/livetv.log"
         },
         {
             "name":"Project",
