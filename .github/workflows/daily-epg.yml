@@ -39,14 +39,3 @@ jobs:
           
           # Committa il cambiamento
           git commit -m "Aggiorna EPG: $(date)"
-          
-          # Riscrivi la cronologia mantenendo solo l'ultimo commit per il deployment
-          git fetch origin
-          git checkout --orphan temp-branch  # Crea un nuovo branch senza cronologia
-          git add docs/epg.xml.gz            # Aggiungi solo il file di deployment
-          git commit -m "Aggiorna EPG: $(date)"  # Crea un nuovo commit
-          git branch -D main                 # Elimina il branch main
-          git branch -m main                 # Rinomina temp-branch in main
-          
-          # Pusha forzando solo il nuovo commit
-          git push --force origin main
