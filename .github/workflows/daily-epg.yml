@@ -6,10 +6,22 @@ on:
   workflow_dispatch:     # Per avviare manualmente
 
 jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - name: Delete Deployment Environment
+        uses: strumwolf/delete-deployment-environment@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: github-pages
+          onlyRemoveDeployments: true
+
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    needs: cleanup  
     steps:
       - name: Checkout repository (con tutta la storia)
         uses: actions/checkout@v3
@@ -29,13 +41,6 @@ jobs:
         run: |
           python scripts/process_epg.py  # Genera epg.xml nella radice
 
-      - name: Delete deployment
-        uses: strumwolf/delete-deployment-environment@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          environment: github-pages
-          onlyRemoveDeployments: true
-          
       - name: Configura Git e Push (solo epg.xml)
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
