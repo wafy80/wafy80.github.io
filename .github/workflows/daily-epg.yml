@@ -39,3 +39,4 @@ jobs:
           
           # Committa il cambiamento
           git commit -m "Aggiorna EPG: $(date)"
+          git push origin main
