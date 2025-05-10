@@ -1,0 +1,52 @@
+name: Aggiorna EPG Giornaliero
+
+on:
+  schedule:
+    - cron: "0 2 * * *"  # Esegui ogni giorno alle 02:00 UTC
+  workflow_dispatch:     # Per avviare manualmente
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository (con tutta la storia)
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Scarica tutta la storia del repository
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dipendenze
+        run: |
+          pip install requests unidecode
+
+      - name: Scarica e processa EPG
+        run: |
+          python scripts/process_epg.py  # Genera epg.xml nella radice
+
+      - name: Configura Git e Push (solo epg.xml)
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "GitHub Actions Bot"
+          
+          # Aggiungi solo il file modificato
+          git add docs/epg.xml.gz
+          
+          # Committa il cambiamento
+          git commit -m "Aggiorna EPG: $(date)"
+          
+          # Riscrivi la cronologia mantenendo solo l'ultimo commit per il deployment
+          git fetch origin
+          git checkout --orphan temp-branch  # Crea un nuovo branch senza cronologia
+          git add docs/epg.xml.gz            # Aggiungi solo il file di deployment
+          git commit -m "Aggiorna EPG: $(date)"  # Crea un nuovo commit
+          git branch -D main                 # Elimina il branch main
+          git branch -m main                 # Rinomina temp-branch in main
+          
+          # Pusha forzando solo il nuovo commit
+          git push --force origin main
