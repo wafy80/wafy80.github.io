@@ -29,6 +29,13 @@ jobs:
         run: |
           python scripts/process_epg.py  # Genera epg.xml nella radice
 
+      - name: Delete deployment
+        uses: strumwolf/delete-deployment-environment@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: github-pages
+          onlyRemoveDeployments: true
+          
       - name: Configura Git e Push (solo epg.xml)
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
