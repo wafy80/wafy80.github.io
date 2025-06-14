@@ -1,0 +1,3 @@
+#EXTM3U url-tvg="https://wafy80.github.io/epg.xml.gz"
+#EXTINF:-1 tvg-id="6152","Match! Futbol 1 [RU]"
+http://localhost:6878/ace/getstream?infohash=0bb7252a2a8dd3704b3a6c0538478450b8987012
