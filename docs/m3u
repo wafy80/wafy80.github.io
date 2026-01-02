@@ -1,4 +1,4 @@
-#EXTM3U url-tvg="https://wafy80.github.io/epg_light.xml"
+#EXTM3U url-tvg="https://wafy80.github.io/epg_light.xml,https://epg.pw/xmltv/epg_RU.xml.gz"
 #EXTINF:-1 tvg-chno="1" tvg-id="match-football1" tvg-logo="https://iptvx.one/picons/match-football1.png",Match! Futbol 1
 http://127.0.0.1:6878/ace/getstream?id=b28db77c5084da7993395d77df96c30bb134f0a9
 #EXTINF:-1 tvg-chno="2" tvg-id="match-football2" tvg-logo="https://iptvx.one/picons/match-football2.png",Match! Futbol 2
@@ -123,9 +123,9 @@ http://127.0.0.1:6878/ace/getstream?id=3147c586346aee00c005d1caa55204d38678c95f
 http://127.0.0.1:6878/ace/getstream?id=75a56863b6fe0407ad4305b4d7ee5643c3923565
 #EXTINF:-1 tvg-id="premier-sports-2-uk" tvg-logo="https://iptvx.one/picons/premier-sports-2-uk.png",Premier Sports 2 [UK]
 http://127.0.0.1:6878/ace/getstream?id=4903ca695edb64bc72ae29eb85a5333ba0139537
-#EXTINF:-1 tvg-id="sky-sport-1-de" tvg-logo="https://iptvx.one/picons/sky-sport-hd1.png",Sky Sport 1 [DE]
+#EXTINF:-1 tvg-id="403251" tvg-logo="https://iptvx.one/picons/sky-sport-hd1.png",Sky Sport 1 [DE]
 http://127.0.0.1:6878/ace/getstream?id=7c12288663069a12aff58f3f62e8ea47ab78c65d
-#EXTINF:-1 tvg-id="sky-sport-2-de" tvg-logo="https://iptvx.one/picons/sky-sport-hd2.png",Sky Sport 2 [DE]
+#EXTINF:-1 tvg-id="403256" tvg-logo="https://iptvx.one/picons/sky-sport-hd2.png",Sky Sport 2 [DE]
 http://127.0.0.1:6878/ace/getstream?id=fc9f1f580da8f641a5991d44b399982a3a069f69
 #EXTINF:-1 tvg-id="sky-sport-f1-de" tvg-logo="https://iptvx.one/picons/sky-sport-f1-de.png",Sky Sport F1 [DE]
 http://127.0.0.1:6878/ace/getstream?id=b04372b9543d763bd2dbd2a1842d9723fd080076
