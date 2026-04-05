@@ -1,0 +1,887 @@
+#!/bin/bash
+# =============================================================================
+# Bing Wallpaper - HTML Gallery Generator
+# Creates a responsive web gallery with all downloaded images
+# Universal: Linux / macOS / Windows
+# =============================================================================
+
+# Load configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/config.conf" ]; then
+    source "$SCRIPT_DIR/config.conf"
+fi
+
+WALLPAPER_DIR="${WALLPAPER_DIR:-docs/img}"
+OUTPUT="$WALLPAPER_DIR/index.html"
+THUMB_DIR="$WALLPAPER_DIR/thumbs"
+THUMB_SIZE="${THUMB_SIZE:-300}"
+
+# Month names for breadcrumbs
+MONTH_NAMES=("January" "February" "March" "April" "May" "June" "July" "August" "September" "October" "November" "December")
+
+# Check if images exist
+JPG_COUNT=$(find "$WALLPAPER_DIR" -maxdepth 1 -name "bing-*.jpg" -type f 2>/dev/null | wc -l)
+if [ "$JPG_COUNT" -eq 0 ]; then
+    echo "❌ No images found in $WALLPAPER_DIR"
+    echo "   Run first: ./download-today.sh or ./sync-archive.sh"
+    exit 1
+fi
+
+# Create thumbnail directory
+mkdir -p "$THUMB_DIR"
+
+echo "📸 Found $JPG_COUNT images. Generating gallery with monthly breadcrumbs..."
+echo "🖼️  Generating thumbnails (${THUMB_SIZE}px)..."
+
+# Generate thumbnails
+generate_thumbnails() {
+    local count=0
+    while IFS= read -r img; do
+        [ -f "$img" ] || continue
+        local filename=$(basename "$img")
+        local thumb="$THUMB_DIR/$filename"
+        
+        # Generate thumbnail only if missing or outdated
+        if [ ! -f "$thumb" ] || [ "$img" -nt "$thumb" ]; then
+            convert "$img" -resize "${THUMB_SIZE}x" -quality 85 "$thumb" 2>/dev/null && \
+                ((count++))
+        fi
+    done < <(find "$WALLPAPER_DIR" -maxdepth 1 -name "bing-*.jpg" -type f 2>/dev/null)
+    
+    echo "✅ Generated $count new thumbnails"
+}
+
+generate_thumbnails
+
+# Generate cards grouped by month
+generate_cards_by_month() {
+    # Collect all images and sort by date extracted from filename
+    local sorted_images=()
+    local current_month=""
+    local month_year=""
+    
+    while IFS= read -r img; do
+        [ -f "$img" ] || continue
+        
+        local filename=$(basename "$img")
+        local txt_file="${img%.*}.txt"
+        local date="Unknown"
+
+        # Read metadata if exists
+        if [ -f "$txt_file" ]; then
+            date=$(grep "^Date:" "$txt_file" 2>/dev/null | cut -d':' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        fi
+
+        # Extract date from filename if not found
+        if [ "$date" = "Unknown" ] || [ -z "$date" ]; then
+            date=$(echo "$filename" | grep -oP 'bing-\K[0-9]{8}' | head -1)
+        fi
+
+        # Format date and extract year-month
+        if [ ${#date} -eq 8 ]; then
+            date_fmt="${date:0:4}-${date:4:2}-${date:6:2}"
+            year="${date:0:4}"
+            month="${date:4:2}"
+        else
+            date_fmt="$date"
+            year="unknown"
+            month="00"
+        fi
+        
+        month_year_key="${year}-${month}"
+        
+        # If month changed, output separator
+        if [ "$month_year_key" != "$current_month" ]; then
+            current_month="$month_year_key"
+            # Remove leading zero from month for array indexing
+            month_num=$((10#$month))
+            month_name="${MONTH_NAMES[$((month_num-1))]}"
+            echo "<!--MONTH_SEPARATOR:${month_name} ${year}:${month_year_key}-->"
+        fi
+
+        local title="Bing Wallpaper"
+        local copyright="N/A"
+
+        # Read metadata if exists
+        if [ -f "$txt_file" ]; then
+            title=$(grep "^Title:" "$txt_file" 2>/dev/null | cut -d':' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            copyright=$(grep "^Copyright:" "$txt_file" 2>/dev/null | cut -d':' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        fi
+
+        [ -z "$title" ] && title="Bing Wallpaper - $date_fmt"
+        [ -z "$copyright" ] && copyright="Microsoft Bing"
+        
+        local thumb_filename="thumbs/$filename"
+
+        cat << CARD
+        <div class="card" data-title="$title" data-copyright="$copyright" data-date="$date_fmt" data-filename="$filename" data-full="$filename" data-month="${month_year_key}">
+            <img src="$thumb_filename" alt="$title" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="$title">$title</h3>
+                <p class="card-copyright">$copyright</p>
+                <p class="card-date">📅 $date_fmt</p>
+            </div>
+        </div>
+CARD
+    done < <(find "$WALLPAPER_DIR" -maxdepth 1 -name "bing-*.jpg" -type f -print0 2>/dev/null | \
+        while IFS= read -r -d '' file; do
+            filename=$(basename "$file")
+            # Extract date from filename (bing-YYYYMMDD.jpg)
+            date=$(echo "$filename" | grep -oP 'bing-\K[0-9]{8}' | head -1)
+            [ -z "$date" ] && date="00000000"
+            echo "$date $file"
+        done | sort -rn | cut -d' ' -f2-)
+}
+
+# Create HTML
+cat > "$OUTPUT" << 'HTMLHEAD'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bing Wallpaper Gallery</title>
+    <style>
+        :root {
+            --primary: #0078D4;
+            --primary-dark: #005a9e;
+            --bg: #1a1a2e;
+            --card-bg: #16213e;
+            --text: #eaeaea;
+            --text-muted: #a0a0a0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            max-width: 1400px;
+            margin: 0 auto 30px;
+            text-align: center;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,120,212,0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1em;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .search-container {
+            max-width: 1400px;
+            margin: 0 auto 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 280px;
+            padding: 14px 20px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            font-size: 16px;
+            background: var(--card-bg);
+            color: var(--text);
+            transition: border-color 0.3s;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .search-btn, .filter-btn {
+            padding: 14px 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .search-btn:hover, .filter-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .filter-btn {
+            background: var(--card-bg);
+            border: 2px solid var(--primary);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+        }
+
+        .gallery-info {
+            max-width: 1400px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .gallery {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(0,120,212,0.4);
+        }
+
+        .card-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .card-info {
+            padding: 18px;
+        }
+
+        .card-title {
+            font-size: 1.15em;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-copyright {
+            font-size: 0.88em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+
+        .card-date {
+            font-size: 0.82em;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .no-results {
+            max-width: 1400px;
+            margin: 50px auto;
+            text-align: center;
+            padding: 40px;
+            background: var(--card-bg);
+            border-radius: 14px;
+            display: none;
+        }
+
+        .no-results.show {
+            display: block;
+        }
+
+        .no-results h2 {
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .lightbox.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .lightbox-img {
+            max-width: 90%;
+            max-height: 80vh;
+            border-radius: 8px;
+            box-shadow: 0 8px 64px rgba(0,0,0,0.5);
+        }
+
+        .lightbox-info {
+            text-align: center;
+            padding: 20px;
+            max-width: 800px;
+        }
+
+        .lightbox-title {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .lightbox-copyright {
+            color: var(--text-muted);
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .lightbox-date {
+            color: var(--primary);
+            font-size: 0.95em;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 3em;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s;
+            line-height: 1;
+        }
+
+        .lightbox-close:hover {
+            transform: scale(1.2);
+            color: var(--primary);
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3em;
+            color: white;
+            cursor: pointer;
+            padding: 20px;
+            transition: all 0.3s;
+            user-select: none;
+        }
+
+        .lightbox-nav:hover {
+            color: var(--primary);
+        }
+
+        .lightbox-prev { left: 20px; }
+        .lightbox-next { right: 20px; }
+
+        .lightbox-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .lightbox-btn {
+            padding: 12px 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .lightbox-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        footer {
+            max-width: 1400px;
+            margin: 50px auto 20px;
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 0.9em;
+            border-top: 1px solid var(--card-bg);
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8em; }
+            .gallery { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+            .search-container { flex-direction: column; }
+            .search-box { min-width: 100%; }
+            .lightbox-nav { font-size: 2em; padding: 10px; }
+            .lightbox-close { font-size: 2em; top: 10px; right: 15px; }
+            .month-breadcrumbs { flex-wrap: wrap; }
+            .month-breadcrumb { font-size: 12px; padding: 8px 12px; }
+        }
+
+        /* Monthly Breadcrumb Navigation */
+        .month-navigation {
+            max-width: 1400px;
+            margin: 20px auto 30px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .month-navigation h3 {
+            margin: 0 0 12px 0;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .month-breadcrumbs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .month-breadcrumb {
+            padding: 10px 18px;
+            background: var(--bg);
+            color: var(--text);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .month-breadcrumb:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,120,212,0.3);
+        }
+
+        .month-breadcrumb.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(0,120,212,0.3);
+        }
+
+        .month-breadcrumb .month-count {
+            font-size: 12px;
+            opacity: 0.85;
+            margin-left: 4px;
+        }
+
+        .month-section {
+            margin-bottom: 40px;
+        }
+
+        .month-section-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,120,212,0.3);
+        }
+
+        .month-section-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .month-section-header .month-count {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Bing Wallpaper Gallery</h1>
+        <p>Your collection of Bing daily wallpapers</p>
+        <div class="stats">
+HTMLHEAD
+
+# Add statistics
+echo "            <div class=\"stat-item\">📸 $JPG_COUNT images</div>" >> "$OUTPUT"
+TOTAL_SIZE=$(du -sh "$WALLPAPER_DIR" 2>/dev/null | cut -f1)
+echo "            <div class=\"stat-item\">💾 $TOTAL_SIZE used</div>" >> "$OUTPUT"
+
+cat >> "$OUTPUT" << 'HTMLMID'
+        </div>
+    </div>
+
+    <div class="search-container">
+        <input type="text" class="search-box" id="searchInput" placeholder="Search by title, copyright, or date..." onkeyup="filterGallery()">
+        <button class="search-btn" onclick="filterGallery()">🔍 Search</button>
+        <button class="filter-btn" onclick="resetFilter()">🔄 Show All</button>
+    </div>
+
+    <div class="gallery-info">
+        <span id="resultsCount"></span>
+        <span id="lastUpdated">Last updated: </span>
+    </div>
+
+    <div class="no-results" id="noResults">
+        <h2>😕 No images found</h2>
+        <p>Try modifying your search terms</p>
+    </div>
+
+    <div class="gallery" id="gallery">
+HTMLMID
+
+# Generate cards by month
+generate_cards_by_month >> "$OUTPUT"
+
+cat >> "$OUTPUT" << 'HTMLMID2'
+    </div>
+
+    <!-- Monthly Breadcrumb Navigation -->
+    <div class="month-navigation" id="monthNavigation">
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+        <span class="lightbox-nav lightbox-prev" onclick="navigateLightbox(-1)">&#10094;</span>
+        <span class="lightbox-nav lightbox-next" onclick="navigateLightbox(1)">&#10095;</span>
+
+        <img src="" alt="" class="lightbox-img" id="lightboxImg">
+
+        <div class="lightbox-info">
+            <h2 class="lightbox-title" id="lightboxTitle"></h2>
+            <p class="lightbox-copyright" id="lightboxCopyright"></p>
+            <p class="lightbox-date" id="lightboxDate"></p>
+
+            <div class="lightbox-actions">
+                <a href="#" class="lightbox-btn" id="downloadBtn" download>📥 Download</a>
+                <button class="lightbox-btn" onclick="setAsWallpaper()">🖼️ Set as Wallpaper</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Generated with <strong>Bing Wallpaper Manager</strong></p>
+        <p>Images © Microsoft Bing and respective authors</p>
+        <p><a href="https://github.com/npanuhin/Bing-Wallpaper-Archive" target="_blank">Historical archive courtesy of npanuhin</a></p>
+    </footer>
+
+    <script>
+        let currentImageIndex = 0;
+        let images = [];
+        let allCards = [];
+        let currentMonth = 'all';
+        let months = [];
+HTMLMID2
+
+cat >> "$OUTPUT" << 'HTMLFOOT'
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLastUpdated();
+            allCards = Array.from(document.querySelectorAll('.card'));
+            images = allCards.map(card => card.querySelector('img'));
+            
+            // Extract unique months from cards
+            const monthSet = new Set();
+            allCards.forEach(card => {
+                if (card.dataset.month) {
+                    monthSet.add(card.dataset.month);
+                }
+            });
+            months = Array.from(monthSet).sort().reverse(); // Newest first
+            
+            buildMonthNavigation();
+            
+            // Auto-select current month
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonthNum = String(now.getMonth() + 1).padStart(2, '0');
+            const currentMonthKey = `${currentYear}-${currentMonthNum}`;
+            
+            // Select current month if it exists, otherwise select the newest available month
+            if (months.includes(currentMonthKey)) {
+                selectMonth(currentMonthKey);
+            } else if (months.length > 0) {
+                selectMonth(months[0]); // Select newest month
+            } else {
+                filterGallery();
+            }
+        });
+
+        function buildMonthNavigation() {
+            const navContainer = document.getElementById('monthNavigation');
+            
+            let html = '<h3>📅 Browse by Month</h3><div class="month-breadcrumbs">';
+            
+            // "All" button
+            html += `<button class="month-breadcrumb active" onclick="selectMonth('all')">All Images<span class="month-count">(${allCards.length})</span></button>`;
+            
+            // Month buttons
+            months.forEach(month => {
+                const [year, monthNum] = month.split('-');
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                                   'July', 'August', 'September', 'October', 'November', 'December'];
+                const monthName = monthNames[parseInt(monthNum) - 1];
+                const count = allCards.filter(card => card.dataset.month === month).length;
+                
+                html += `<button class="month-breadcrumb" data-month="${month}" onclick="selectMonth('${month}')">${monthName} ${year}<span class="month-count">(${count})</span></button>`;
+            });
+            
+            html += '</div>';
+            navContainer.innerHTML = html;
+        }
+
+        function selectMonth(month) {
+            currentMonth = month;
+            
+            // Update active state
+            document.querySelectorAll('.month-breadcrumb').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (month === 'all') {
+                document.querySelector('.month-breadcrumb').classList.add('active');
+            } else {
+                document.querySelector(`.month-breadcrumb[data-month="${month}"]`).classList.add('active');
+            }
+            
+            filterGallery();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateLastUpdated() {
+            const now = new Date();
+            const options = {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            document.getElementById('lastUpdated').textContent =
+                'Last updated: ' + now.toLocaleDateString('en-US', options);
+        }
+
+        function filterGallery() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            let visible = 0;
+
+            allCards.forEach(card => {
+                const title = card.dataset.title.toLowerCase();
+                const copyright = card.dataset.copyright.toLowerCase();
+                const date = card.dataset.date.toLowerCase();
+                const cardMonth = card.dataset.month;
+                
+                // Check month filter
+                const monthMatch = currentMonth === 'all' || cardMonth === currentMonth;
+                
+                // Check search query
+                const searchMatch = !query.trim() || 
+                                   title.includes(query) || 
+                                   copyright.includes(query) || 
+                                   date.includes(query);
+
+                if (monthMatch && searchMatch) {
+                    card.style.display = 'block';
+                    visible++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Show/hide no results message
+            const noResults = document.getElementById('noResults');
+            if (visible === 0) {
+                noResults.classList.add('show');
+            } else {
+                noResults.classList.remove('show');
+            }
+
+            // Update counter
+            document.getElementById('resultsCount').textContent =
+                `Showing ${visible} of ${allCards.length} images`;
+        }
+
+        function resetFilter() {
+            document.getElementById('searchInput').value = '';
+            selectMonth('all');
+        }
+
+        function openLightboxFromCard(imgElement) {
+            const card = imgElement.closest('.card');
+            const fullSrc = card.dataset.full;
+            const title = card.dataset.title;
+            const copyright = card.dataset.copyright;
+            const date = card.dataset.date;
+            openLightbox(fullSrc, title, copyright, date);
+        }
+
+        function openLightbox(src, title, copyright, date) {
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightboxImg');
+
+            lightboxImg.src = src;
+            document.getElementById('lightboxTitle').textContent = title;
+            document.getElementById('lightboxCopyright').textContent = copyright;
+            document.getElementById('lightboxDate').textContent = date;
+            document.getElementById('downloadBtn').href = src;
+
+            // Find current image index from visible cards only
+            const visibleCards = allCards.filter(card => card.style.display !== 'none');
+            const card = Array.from(document.querySelectorAll('.card img')).findIndex(img => img.src === src.replace('thumbs/', '')) ;
+            
+            // Find the card that was clicked
+            let clickedIndex = 0;
+            visibleCards.forEach((c, idx) => {
+                if (c.dataset.full === src || c.querySelector('img').src.includes(src.replace('thumbs/', '').split('.')[0])) {
+                    clickedIndex = idx;
+                }
+            });
+            
+            currentImageIndex = clickedIndex;
+            images = visibleCards.map(c => c.querySelector('img'));
+
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function navigateLightbox(direction) {
+            const visibleCards = allCards.filter(card => card.style.display !== 'none');
+            currentImageIndex += direction;
+            if (currentImageIndex < 0) currentImageIndex = visibleCards.length - 1;
+            if (currentImageIndex >= visibleCards.length) currentImageIndex = 0;
+
+            const card = visibleCards[currentImageIndex];
+            const img = card.querySelector('img');
+
+            openLightbox(
+                card.dataset.full,
+                card.dataset.title,
+                card.dataset.copyright,
+                card.dataset.date
+            );
+        }
+
+        function setAsWallpaper() {
+            const src = document.getElementById('lightboxImg').src;
+
+            // Try different methods based on system
+            if (navigator.userAgent.includes('Linux')) {
+                // For Linux with GNOME
+                alert('To set as wallpaper:\n\n' +
+                      'GNOME: gsettings set org.gnome.desktop.background picture-uri "file://' + src + '"\n\n' +
+                      'Or use system settings to select this image.');
+            } else {
+                alert('To set as wallpaper:\n\n' +
+                      '1. Right-click on the desktop\n' +
+                      '2. Choose "Change background"\n' +
+                      '3. Select this image from the folder:\n' + src);
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            const lightbox = document.getElementById('lightbox');
+            if (!lightbox.classList.contains('active')) return;
+
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft') navigateLightbox(-1);
+            if (e.key === 'ArrowRight') navigateLightbox(1);
+        });
+
+        // Close lightbox when clicking outside
+        document.getElementById('lightbox').addEventListener('click', function(e) {
+            if (e.target === this) closeLightbox();
+        });
+    </script>
+</body>
+</html>
+HTMLFOOT
+
+echo "✅ Gallery generated: $OUTPUT"
+echo ""
+echo "🌐 To open the gallery:"
+echo "   Linux:   xdg-open \"$OUTPUT\""
+echo "   macOS:   open \"$OUTPUT\""
+echo "   Windows: start \"$OUTPUT\""
+echo ""
+
+exit 0
