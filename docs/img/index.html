@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bing Wallpaper Gallery</title>
+    <style>
+        :root {
+            --primary: #0078D4;
+            --primary-dark: #005a9e;
+            --bg: #1a1a2e;
+            --card-bg: #16213e;
+            --text: #eaeaea;
+            --text-muted: #a0a0a0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            max-width: 1400px;
+            margin: 0 auto 30px;
+            text-align: center;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,120,212,0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1em;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .search-container {
+            max-width: 1400px;
+            margin: 0 auto 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 280px;
+            padding: 14px 20px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            font-size: 16px;
+            background: var(--card-bg);
+            color: var(--text);
+            transition: border-color 0.3s;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .search-btn, .filter-btn {
+            padding: 14px 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .search-btn:hover, .filter-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .filter-btn {
+            background: var(--card-bg);
+            border: 2px solid var(--primary);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+        }
+
+        .gallery-info {
+            max-width: 1400px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .gallery {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(0,120,212,0.4);
+        }
+
+        .card-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .card-info {
+            padding: 18px;
+        }
+
+        .card-title {
+            font-size: 1.15em;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-copyright {
+            font-size: 0.88em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+
+        .card-date {
+            font-size: 0.82em;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .card-market {
+            font-size: 0.82em;
+            color: var(--text-muted);
+        }
+
+        .no-results {
+            max-width: 1400px;
+            margin: 50px auto;
+            text-align: center;
+            padding: 40px;
+            background: var(--card-bg);
+            border-radius: 14px;
+            display: none;
+        }
+
+        .no-results.show {
+            display: block;
+        }
+
+        .no-results h2 {
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .lightbox.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .lightbox-img {
+            max-width: 90%;
+            max-height: 80vh;
+            border-radius: 8px;
+            box-shadow: 0 8px 64px rgba(0,0,0,0.5);
+        }
+
+        .lightbox-info {
+            text-align: center;
+            padding: 20px;
+            max-width: 800px;
+        }
+
+        .lightbox-title {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .lightbox-copyright {
+            color: var(--text-muted);
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .lightbox-date {
+            color: var(--primary);
+            font-size: 0.95em;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 3em;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s;
+            line-height: 1;
+        }
+
+        .lightbox-close:hover {
+            transform: scale(1.2);
+            color: var(--primary);
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3em;
+            color: white;
+            cursor: pointer;
+            padding: 20px;
+            transition: all 0.3s;
+            user-select: none;
+        }
+
+        .lightbox-nav:hover {
+            color: var(--primary);
+        }
+
+        .lightbox-prev { left: 20px; }
+        .lightbox-next { right: 20px; }
+
+        .lightbox-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .lightbox-btn {
+            padding: 12px 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .lightbox-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        footer {
+            max-width: 1400px;
+            margin: 50px auto 20px;
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 0.9em;
+            border-top: 1px solid var(--card-bg);
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8em; }
+            .gallery { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+            .search-container { flex-direction: column; }
+            .search-box { min-width: 100%; }
+            .lightbox-nav { font-size: 2em; padding: 10px; }
+            .lightbox-close { font-size: 2em; top: 10px; right: 15px; }
+            .month-breadcrumbs { flex-wrap: wrap; }
+            .month-breadcrumb { font-size: 12px; padding: 8px 12px; }
+        }
+
+        /* Monthly Breadcrumb Navigation */
+        .month-navigation {
+            max-width: 1400px;
+            margin: 20px auto 30px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .month-navigation h3 {
+            margin: 0 0 12px 0;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .month-breadcrumbs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .month-breadcrumb {
+            padding: 10px 18px;
+            background: var(--bg);
+            color: var(--text);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .month-breadcrumb:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,120,212,0.3);
+        }
+
+        .month-breadcrumb.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(0,120,212,0.3);
+        }
+
+        .month-breadcrumb .month-count {
+            font-size: 12px;
+            opacity: 0.85;
+            margin-left: 4px;
+        }
+
+        .month-section {
+            margin-bottom: 40px;
+        }
+
+        .month-section-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,120,212,0.3);
+        }
+
+        .month-section-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .month-section-header .month-count {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Bing Wallpaper Gallery</h1>
+        <p>Your collection of Bing daily wallpapers</p>
+        <div class="stats">
+            <div class="stat-item">📸 136 wallpapers</div>
+        </div>
+    </div>
+
+    <div class="search-container">
+        <input type="text" class="search-box" id="searchInput" placeholder="Search by title, copyright, or date..." onkeyup="filterGallery()">
+        <button class="search-btn" onclick="filterGallery()">🔍 Search</button>
+        <button class="filter-btn" onclick="resetFilter()">🔄 Show All</button>
+    </div>
+
+    <div class="gallery-info">
+        <span id="resultsCount"></span>
+        <span id="lastUpdated">Last updated: </span>
+    </div>
+
+    <div class="no-results" id="noResults">
+        <h2>😕 No images found</h2>
+        <p>Try modifying your search terms</p>
+    </div>
+
+    <div class="gallery" id="gallery">
+<!--MONTH_SEPARATOR:April 2026:2026-04-->
+        <div class="card" data-title="Sgwd yr Eira waterfall, Bannau Brycheiniog National Park, Wales" data-copyright="© Guy Edwardes/Nature Picture Library" data-date="08/04/2026" data-filename="bing_WalesWaterfall.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_WalesWaterfall.jpg" data-month="2026-04" data-market="en-GB">
+            <img src="thumbs/bing_WalesWaterfall.jpg" alt="Sgwd yr Eira waterfall, Bannau Brycheiniog National Park, Wales" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Sgwd yr Eira waterfall, Bannau Brycheiniog National Park, Wales">Sgwd yr Eira waterfall, Bannau Brycheiniog National Park, Wales</h3>
+                <p class="card-copyright">© Guy Edwardes/Nature Picture Library</p>
+                <p class="card-date">📅 08/04/2026</p>
+                <p class="card-market">🌐 en-GB</p>
+            </div>
+        </div>
+        <div class="card" data-title="Seattle, Washington" data-copyright="© Jim Patterson/Tandem Stills + Motion" data-date="08/04/2026" data-filename="bing_SeattleSunrise.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SeattleSunrise.jpg" data-month="2026-04" data-market="en-US">
+            <img src="thumbs/bing_SeattleSunrise.jpg" alt="Seattle, Washington" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Seattle, Washington">Seattle, Washington</h3>
+                <p class="card-copyright">© Jim Patterson/Tandem Stills + Motion</p>
+                <p class="card-date">📅 08/04/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Orquídea Denphal" data-copyright="© Rui Santos/Getty Images" data-date="08/04/2026" data-filename="bing_Denphal.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_Denphal.jpg" data-month="2026-04" data-market="pt-BR">
+            <img src="thumbs/bing_Denphal.jpg" alt="Orquídea Denphal" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Orquídea Denphal">Orquídea Denphal</h3>
+                <p class="card-copyright">© Rui Santos/Getty Images</p>
+                <p class="card-date">📅 08/04/2026</p>
+                <p class="card-market">🌐 pt-BR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Common clownfish in a sea anemone, Raja Ampat Islands, Indonesia" data-copyright="© Magnus Lundgren/Nature Picture Library" data-date="07/04/2026" data-filename="bing_OcellarisClownfish.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_OcellarisClownfish.jpg" data-month="2026-04" data-market="en-IN">
+            <img src="thumbs/bing_OcellarisClownfish.jpg" alt="Common clownfish in a sea anemone, Raja Ampat Islands, Indonesia" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Common clownfish in a sea anemone, Raja Ampat Islands, Indonesia">Common clownfish in a sea anemone, Raja Ampat Islands, Indonesia</h3>
+                <p class="card-copyright">© Magnus Lundgren/Nature Picture Library</p>
+                <p class="card-date">📅 07/04/2026</p>
+                <p class="card-market">🌐 en-IN</p>
+            </div>
+        </div>
+        <div class="card" data-title="Beaver, Germany" data-copyright="© Andyworks/Getty Images" data-date="07/04/2026" data-filename="bing_BeaverPortrait.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_BeaverPortrait.jpg" data-month="2026-04" data-market="en-US">
+            <img src="thumbs/bing_BeaverPortrait.jpg" alt="Beaver, Germany" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Beaver, Germany">Beaver, Germany</h3>
+                <p class="card-copyright">© Andyworks/Getty Images</p>
+                <p class="card-date">📅 07/04/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Hirosaki Castle with cherry blossoms, Hirosaki, Japan" data-copyright="© Glenn Waters/Getty Images" data-date="06/04/2026" data-filename="bing_CastleBlossoms.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_CastleBlossoms.jpg" data-month="2026-04" data-market="en-US">
+            <img src="thumbs/bing_CastleBlossoms.jpg" alt="Hirosaki Castle with cherry blossoms, Hirosaki, Japan" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Hirosaki Castle with cherry blossoms, Hirosaki, Japan">Hirosaki Castle with cherry blossoms, Hirosaki, Japan</h3>
+                <p class="card-copyright">© Glenn Waters/Getty Images</p>
+                <p class="card-date">📅 06/04/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Rione V Ponte, Roma" data-copyright="© Alexander Spatari/Momento/Getty Images" data-date="06/04/2026" data-filename="bing_CarbonaraRoma.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_CarbonaraRoma.jpg" data-month="2026-04" data-market="it-IT">
+            <img src="thumbs/bing_CarbonaraRoma.jpg" alt="Rione V Ponte, Roma" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Rione V Ponte, Roma">Rione V Ponte, Roma</h3>
+                <p class="card-copyright">© Alexander Spatari/Momento/Getty Images</p>
+                <p class="card-date">📅 06/04/2026</p>
+                <p class="card-market">🌐 it-IT</p>
+            </div>
+        </div>
+        <div class="card" data-title="春天的雪钟花" data-copyright="© klagyivik/Getty Images" data-date="05/04/2026" data-filename="bing_SpringSnowdrops.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SpringSnowdrops.jpg" data-month="2026-04" data-market="zh-CN">
+            <img src="thumbs/bing_SpringSnowdrops.jpg" alt="春天的雪钟花" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="春天的雪钟花">春天的雪钟花</h3>
+                <p class="card-copyright">© klagyivik/Getty Images</p>
+                <p class="card-date">📅 05/04/2026</p>
+                <p class="card-market">🌐 zh-CN</p>
+            </div>
+        </div>
+        <div class="card" data-title="Bunt bemalte sorbische Ostereier aus Deutschland" data-copyright="© Mark Poltermann/Getty Images" data-date="05/04/2026" data-filename="bing_SorbianEasterEggs.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SorbianEasterEggs.jpg" data-month="2026-04" data-market="de-DE">
+            <img src="thumbs/bing_SorbianEasterEggs.jpg" alt="Bunt bemalte sorbische Ostereier aus Deutschland" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Bunt bemalte sorbische Ostereier aus Deutschland">Bunt bemalte sorbische Ostereier aus Deutschland</h3>
+                <p class="card-copyright">© Mark Poltermann/Getty Images</p>
+                <p class="card-date">📅 05/04/2026</p>
+                <p class="card-market">🌐 de-DE</p>
+            </div>
+        </div>
+        <div class="card" data-title="Pont d’Arc, Ardèche" data-copyright="© Gael Fontaine/Getty Images" data-date="05/04/2026" data-filename="bing_PontArdeche.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_PontArdeche.jpg" data-month="2026-04" data-market="fr-FR">
+            <img src="thumbs/bing_PontArdeche.jpg" alt="Pont d’Arc, Ardèche" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Pont d’Arc, Ardèche">Pont d’Arc, Ardèche</h3>
+                <p class="card-copyright">© Gael Fontaine/Getty Images</p>
+                <p class="card-date">📅 05/04/2026</p>
+                <p class="card-market">🌐 fr-FR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Colorful handmade wooden Easter eggs, Vilnius, Lithuania" data-copyright="© maximkabb/Getty Images" data-date="05/04/2026" data-filename="bing_LithuaniaEggs.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_LithuaniaEggs.jpg" data-month="2026-04" data-market="en-US">
+            <img src="thumbs/bing_LithuaniaEggs.jpg" alt="Colorful handmade wooden Easter eggs, Vilnius, Lithuania" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Colorful handmade wooden Easter eggs, Vilnius, Lithuania">Colorful handmade wooden Easter eggs, Vilnius, Lithuania</h3>
+                <p class="card-copyright">© maximkabb/Getty Images</p>
+                <p class="card-date">📅 05/04/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Esculturas de Aleijadinho na Basílica do Bom Jesus de Matozinhos, Congonhas, Minas Gerais" data-copyright="© Pulsar Imagens/Alamy" data-date="05/04/2026" data-filename="bing_Easter.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_Easter.jpg" data-month="2026-04" data-market="pt-BR">
+            <img src="thumbs/bing_Easter.jpg" alt="Esculturas de Aleijadinho na Basílica do Bom Jesus de Matozinhos, Congonhas, Minas Gerais" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Esculturas de Aleijadinho na Basílica do Bom Jesus de Matozinhos, Congonhas, Minas Gerais">Esculturas de Aleijadinho na Basílica do Bom Jesus de Matozinhos, Congonhas, Minas Gerais</h3>
+                <p class="card-copyright">© Pulsar Imagens/Alamy</p>
+                <p class="card-date">📅 05/04/2026</p>
+                <p class="card-market">🌐 pt-BR</p>
+            </div>
+        </div>
+        <div class="card" data-title="首里城歓会門, 沖縄県 那覇市" data-copyright="© Jui-Chi Chan/Getty images" data-date="04/04/2026" data-filename="bing_QingmingFestival2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_QingmingFestival2026.jpg" data-month="2026-04" data-market="ja-JP">
+            <img src="thumbs/bing_QingmingFestival2026.jpg" alt="首里城歓会門, 沖縄県 那覇市" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="首里城歓会門, 沖縄県 那覇市">首里城歓会門, 沖縄県 那覇市</h3>
+                <p class="card-copyright">© Jui-Chi Chan/Getty images</p>
+                <p class="card-date">📅 04/04/2026</p>
+                <p class="card-market">🌐 ja-JP</p>
+            </div>
+        </div>
+        <div class="card" data-title="Dolbadarn Castle, Llanberis, Snowdonia National Park, Wales" data-copyright="© Allan Hartley/Alamy" data-date="04/04/2026" data-filename="bing_NPFortnight2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_NPFortnight2026.jpg" data-month="2026-04" data-market="en-GB">
+            <img src="thumbs/bing_NPFortnight2026.jpg" alt="Dolbadarn Castle, Llanberis, Snowdonia National Park, Wales" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Dolbadarn Castle, Llanberis, Snowdonia National Park, Wales">Dolbadarn Castle, Llanberis, Snowdonia National Park, Wales</h3>
+                <p class="card-copyright">© Allan Hartley/Alamy</p>
+                <p class="card-date">📅 04/04/2026</p>
+                <p class="card-market">🌐 en-GB</p>
+            </div>
+        </div>
+        <div class="card" data-title="Black grouse males facing off on a lekking site, Estonia" data-copyright="© Sven Zacek/Nature Picture Library" data-date="04/04/2026" data-filename="bing_GrouseGuff.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_GrouseGuff.jpg" data-month="2026-04" data-market="en-US">
+            <img src="thumbs/bing_GrouseGuff.jpg" alt="Black grouse males facing off on a lekking site, Estonia" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Black grouse males facing off on a lekking site, Estonia">Black grouse males facing off on a lekking site, Estonia</h3>
+                <p class="card-copyright">© Sven Zacek/Nature Picture Library</p>
+                <p class="card-date">📅 04/04/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Armbrug bridge, Amsterdam, Netherlands" data-copyright="© Alexander Spatari/Getty Images" data-date="03/04/2026" data-filename="bing_ArmbrugBridge.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_ArmbrugBridge.jpg" data-month="2026-04" data-market="en-US">
+            <img src="thumbs/bing_ArmbrugBridge.jpg" alt="Armbrug bridge, Amsterdam, Netherlands" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Armbrug bridge, Amsterdam, Netherlands">Armbrug bridge, Amsterdam, Netherlands</h3>
+                <p class="card-copyright">© Alexander Spatari/Getty Images</p>
+                <p class="card-date">📅 03/04/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Wildflower bloom, Central Valley, California" data-copyright="© Jeff Lewis/Tandem Stills + Motion" data-date="02/04/2026" data-filename="bing_WildflowerValley.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_WildflowerValley.jpg" data-month="2026-04" data-market="en-US">
+            <img src="thumbs/bing_WildflowerValley.jpg" alt="Wildflower bloom, Central Valley, California" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Wildflower bloom, Central Valley, California">Wildflower bloom, Central Valley, California</h3>
+                <p class="card-copyright">© Jeff Lewis/Tandem Stills + Motion</p>
+                <p class="card-date">📅 02/04/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Muscardin à l’entrée de leur nid, Normandie" data-copyright="© slowmotiongli/Getty Images" data-date="02/04/2026" data-filename="bing_MuscardinNest.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_MuscardinNest.jpg" data-month="2026-04" data-market="fr-FR">
+            <img src="thumbs/bing_MuscardinNest.jpg" alt="Muscardin à l’entrée de leur nid, Normandie" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Muscardin à l’entrée de leur nid, Normandie">Muscardin à l’entrée de leur nid, Normandie</h3>
+                <p class="card-copyright">© slowmotiongli/Getty Images</p>
+                <p class="card-date">📅 02/04/2026</p>
+                <p class="card-market">🌐 fr-FR</p>
+            </div>
+        </div>
+        <div class="card" data-title="シモクレン" data-copyright="© Aflo Co., Ltd./Alamy" data-date="02/04/2026" data-filename="bing_MagnoliaBloom2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_MagnoliaBloom2026.jpg" data-month="2026-04" data-market="ja-JP">
+            <img src="thumbs/bing_MagnoliaBloom2026.jpg" alt="シモクレン" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="シモクレン">シモクレン</h3>
+                <p class="card-copyright">© Aflo Co., Ltd./Alamy</p>
+                <p class="card-date">📅 02/04/2026</p>
+                <p class="card-market">🌐 ja-JP</p>
+            </div>
+        </div>
+        <div class="card" data-title="Onça-pintada observando de uma árvore, Pantanal, Mato Grosso" data-copyright="© Marko Konig/Getty Images" data-date="02/04/2026" data-filename="bing_Jaguarcat.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_Jaguarcat.jpg" data-month="2026-04" data-market="pt-BR">
+            <img src="thumbs/bing_Jaguarcat.jpg" alt="Onça-pintada observando de uma árvore, Pantanal, Mato Grosso" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Onça-pintada observando de uma árvore, Pantanal, Mato Grosso">Onça-pintada observando de uma árvore, Pantanal, Mato Grosso</h3>
+                <p class="card-copyright">© Marko Konig/Getty Images</p>
+                <p class="card-date">📅 02/04/2026</p>
+                <p class="card-market">🌐 pt-BR</p>
+            </div>
+        </div>
+        <div class="card" data-title="The Great Stupa at Sanchi, Madhya Pradesh" data-copyright="© Dmitry Rukhlenko - Photos of India/Alamy" data-date="01/04/2026" data-filename="bing_SanchiMP.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SanchiMP.jpg" data-month="2026-04" data-market="en-IN">
+            <img src="thumbs/bing_SanchiMP.jpg" alt="The Great Stupa at Sanchi, Madhya Pradesh" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="The Great Stupa at Sanchi, Madhya Pradesh">The Great Stupa at Sanchi, Madhya Pradesh</h3>
+                <p class="card-copyright">© Dmitry Rukhlenko - Photos of India/Alamy</p>
+                <p class="card-date">📅 01/04/2026</p>
+                <p class="card-market">🌐 en-IN</p>
+            </div>
+        </div>
+        <div class="card" data-title="Japanese tree frog in a pink morning glory" data-copyright="© Tetsuya Tanooka/Getty Images" data-date="01/04/2026" data-filename="bing_JapaneseTreeFrog.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_JapaneseTreeFrog.jpg" data-month="2026-04" data-market="en-US">
+            <img src="thumbs/bing_JapaneseTreeFrog.jpg" alt="Japanese tree frog in a pink morning glory" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Japanese tree frog in a pink morning glory">Japanese tree frog in a pink morning glory</h3>
+                <p class="card-copyright">© Tetsuya Tanooka/Getty Images</p>
+                <p class="card-date">📅 01/04/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+<!--MONTH_SEPARATOR:March 2026:2026-03-->
+        <div class="card" data-title="Paradise Cave, Phong Nha-Ke Bang National Park, Vietnam" data-copyright="© Pakawat Thongcharoen/Getty Images" data-date="31/03/2026" data-filename="bing_ParadiseCave.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_ParadiseCave.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_ParadiseCave.jpg" alt="Paradise Cave, Phong Nha-Ke Bang National Park, Vietnam" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Paradise Cave, Phong Nha-Ke Bang National Park, Vietnam">Paradise Cave, Phong Nha-Ke Bang National Park, Vietnam</h3>
+                <p class="card-copyright">© Pakawat Thongcharoen/Getty Images</p>
+                <p class="card-date">📅 31/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Demoiselle cranes, India" data-copyright="© Axel Gomille/Nature Picture Library" data-date="30/03/2026" data-filename="bing_IndiaCranes.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_IndiaCranes.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_IndiaCranes.jpg" alt="Demoiselle cranes, India" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Demoiselle cranes, India">Demoiselle cranes, India</h3>
+                <p class="card-copyright">© Axel Gomille/Nature Picture Library</p>
+                <p class="card-date">📅 30/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Lago Federa, Cortina d'Ampezzo, Belluno, Veneto" data-copyright="© Elena-studio/iStock" data-date="30/03/2026" data-filename="bing_DolomitiSpring.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_DolomitiSpring.jpg" data-month="2026-03" data-market="it-IT">
+            <img src="thumbs/bing_DolomitiSpring.jpg" alt="Lago Federa, Cortina d'Ampezzo, Belluno, Veneto" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Lago Federa, Cortina d'Ampezzo, Belluno, Veneto">Lago Federa, Cortina d'Ampezzo, Belluno, Veneto</h3>
+                <p class="card-copyright">© Elena-studio/iStock</p>
+                <p class="card-date">📅 30/03/2026</p>
+                <p class="card-market">🌐 it-IT</p>
+            </div>
+        </div>
+        <div class="card" data-title="Astronomische Uhr am Rathaus von Ulm, Baden‑Württemberg" data-copyright="© Tomekbudujedomek/Getty Images" data-date="29/03/2026" data-filename="bing_UlmClock.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_UlmClock.jpg" data-month="2026-03" data-market="de-DE">
+            <img src="thumbs/bing_UlmClock.jpg" alt="Astronomische Uhr am Rathaus von Ulm, Baden‑Württemberg" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Astronomische Uhr am Rathaus von Ulm, Baden‑Württemberg">Astronomische Uhr am Rathaus von Ulm, Baden‑Württemberg</h3>
+                <p class="card-copyright">© Tomekbudujedomek/Getty Images</p>
+                <p class="card-date">📅 29/03/2026</p>
+                <p class="card-market">🌐 de-DE</p>
+            </div>
+        </div>
+        <div class="card" data-title="Catedral de Sevilla, Andalucía" data-copyright="© sedmak/Getty Images" data-date="29/03/2026" data-filename="bing_Sevillaweek.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_Sevillaweek.jpg" data-month="2026-03" data-market="es-ES">
+            <img src="thumbs/bing_Sevillaweek.jpg" alt="Catedral de Sevilla, Andalucía" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Catedral de Sevilla, Andalucía">Catedral de Sevilla, Andalucía</h3>
+                <p class="card-copyright">© sedmak/Getty Images</p>
+                <p class="card-date">📅 29/03/2026</p>
+                <p class="card-market">🌐 es-ES</p>
+            </div>
+        </div>
+        <div class="card" data-title="Peggy's Point Lighthouse, Atlantic Coast, Nova Scotia, Canada" data-copyright="© Prashanth Bala/Shutterstock" data-date="29/03/2026" data-filename="bing_PeggysLighthouse.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_PeggysLighthouse.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_PeggysLighthouse.jpg" alt="Peggy's Point Lighthouse, Atlantic Coast, Nova Scotia, Canada" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Peggy's Point Lighthouse, Atlantic Coast, Nova Scotia, Canada">Peggy's Point Lighthouse, Atlantic Coast, Nova Scotia, Canada</h3>
+                <p class="card-copyright">© Prashanth Bala/Shutterstock</p>
+                <p class="card-date">📅 29/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Liberty Clock, London, England" data-copyright="© Dukas/Universal Images Group/Getty Images" data-date="29/03/2026" data-filename="bing_BSTStarts2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_BSTStarts2026.jpg" data-month="2026-03" data-market="en-GB">
+            <img src="thumbs/bing_BSTStarts2026.jpg" alt="Liberty Clock, London, England" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Liberty Clock, London, England">Liberty Clock, London, England</h3>
+                <p class="card-copyright">© Dukas/Universal Images Group/Getty Images</p>
+                <p class="card-date">📅 29/03/2026</p>
+                <p class="card-market">🌐 en-GB</p>
+            </div>
+        </div>
+        <div class="card" data-title="Vista aérea do Forte de Santa Maria, Salvador, Bahia" data-copyright="© Uiler Costa/Shutterstock" data-date="29/03/2026" data-filename="bing_AniverSalvador.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_AniverSalvador.jpg" data-month="2026-03" data-market="pt-BR">
+            <img src="thumbs/bing_AniverSalvador.jpg" alt="Vista aérea do Forte de Santa Maria, Salvador, Bahia" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Vista aérea do Forte de Santa Maria, Salvador, Bahia">Vista aérea do Forte de Santa Maria, Salvador, Bahia</h3>
+                <p class="card-copyright">© Uiler Costa/Shutterstock</p>
+                <p class="card-date">📅 29/03/2026</p>
+                <p class="card-market">🌐 pt-BR</p>
+            </div>
+        </div>
+        <div class="card" data-title="African buffalo, Ngorongoro Crater, Tanzania" data-copyright="© jesuss8/500px/Getty Images" data-date="28/03/2026" data-filename="bing_CapeBuffalo.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_CapeBuffalo.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_CapeBuffalo.jpg" alt="African buffalo, Ngorongoro Crater, Tanzania" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="African buffalo, Ngorongoro Crater, Tanzania">African buffalo, Ngorongoro Crater, Tanzania</h3>
+                <p class="card-copyright">© jesuss8/500px/Getty Images</p>
+                <p class="card-date">📅 28/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="日本一早い桜、沖縄" data-copyright="© @hapidayss/Getty Images" data-date="27/03/2026" data-filename="bing_SakuraDay2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SakuraDay2026.jpg" data-month="2026-03" data-market="ja-JP">
+            <img src="thumbs/bing_SakuraDay2026.jpg" alt="日本一早い桜、沖縄" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="日本一早い桜、沖縄">日本一早い桜、沖縄</h3>
+                <p class="card-copyright">© @hapidayss/Getty Images</p>
+                <p class="card-date">📅 27/03/2026</p>
+                <p class="card-market">🌐 ja-JP</p>
+            </div>
+        </div>
+        <div class="card" data-title="Radio City Music Hall in New York City" data-copyright="© Clarence Holmes Photography/Alamy" data-date="27/03/2026" data-filename="bing_RadioCityHall.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_RadioCityHall.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_RadioCityHall.jpg" alt="Radio City Music Hall in New York City" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Radio City Music Hall in New York City">Radio City Music Hall in New York City</h3>
+                <p class="card-copyright">© Clarence Holmes Photography/Alamy</p>
+                <p class="card-date">📅 27/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Logan Creek Suspension Bridge, West Coast Trail, Canada" data-copyright="© Tandem Stock/Adobe Stock" data-date="26/03/2026" data-filename="bing_LoganCreek.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_LoganCreek.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_LoganCreek.jpg" alt="Logan Creek Suspension Bridge, West Coast Trail, Canada" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Logan Creek Suspension Bridge, West Coast Trail, Canada">Logan Creek Suspension Bridge, West Coast Trail, Canada</h3>
+                <p class="card-copyright">© Tandem Stock/Adobe Stock</p>
+                <p class="card-date">📅 26/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Juvenile manatees in a freshwater spring, Crystal River, Florida" data-copyright="© Gregory Sweeney/Getty Images" data-date="25/03/2026" data-filename="bing_ManateeSpring.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_ManateeSpring.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_ManateeSpring.jpg" alt="Juvenile manatees in a freshwater spring, Crystal River, Florida" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Juvenile manatees in a freshwater spring, Crystal River, Florida">Juvenile manatees in a freshwater spring, Crystal River, Florida</h3>
+                <p class="card-copyright">© Gregory Sweeney/Getty Images</p>
+                <p class="card-date">📅 25/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Cattedrale Santa Maria del Fiore, Firenze, Toscana" data-copyright="© Lindrik/iStock/Getty Images Plus" data-date="25/03/2026" data-filename="bing_DanteDay.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_DanteDay.jpg" data-month="2026-03" data-market="it-IT">
+            <img src="thumbs/bing_DanteDay.jpg" alt="Cattedrale Santa Maria del Fiore, Firenze, Toscana" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Cattedrale Santa Maria del Fiore, Firenze, Toscana">Cattedrale Santa Maria del Fiore, Firenze, Toscana</h3>
+                <p class="card-copyright">© Lindrik/iStock/Getty Images Plus</p>
+                <p class="card-date">📅 25/03/2026</p>
+                <p class="card-market">🌐 it-IT</p>
+            </div>
+        </div>
+        <div class="card" data-title="Pine trees reflected in the Forgetmenot Pond in Kananaskis Country, Alberta" data-copyright="© chinaface/Getty images" data-date="25/03/2026" data-filename="bing_AlbertaSnowMts.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_AlbertaSnowMts.jpg" data-month="2026-03" data-market="en-CA">
+            <img src="thumbs/bing_AlbertaSnowMts.jpg" alt="Pine trees reflected in the Forgetmenot Pond in Kananaskis Country, Alberta" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Pine trees reflected in the Forgetmenot Pond in Kananaskis Country, Alberta">Pine trees reflected in the Forgetmenot Pond in Kananaskis Country, Alberta</h3>
+                <p class="card-copyright">© chinaface/Getty images</p>
+                <p class="card-date">📅 25/03/2026</p>
+                <p class="card-market">🌐 en-CA</p>
+            </div>
+        </div>
+        <div class="card" data-title="Cherry blossoms at East Lake Cherry Blossom Park, Wuhan, China" data-copyright="© Zhang Qiao/VCG/Getty Images" data-date="24/03/2026" data-filename="bing_WuhanCherryBlossom.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_WuhanCherryBlossom.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_WuhanCherryBlossom.jpg" alt="Cherry blossoms at East Lake Cherry Blossom Park, Wuhan, China" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Cherry blossoms at East Lake Cherry Blossom Park, Wuhan, China">Cherry blossoms at East Lake Cherry Blossom Park, Wuhan, China</h3>
+                <p class="card-copyright">© Zhang Qiao/VCG/Getty Images</p>
+                <p class="card-date">📅 24/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Drohnenaufnahme des Peilturms am Kap Arkona, Rügen, Mecklenburg‑Vorpommern" data-copyright="© Stefan Dinse/Getty Images" data-date="24/03/2026" data-filename="bing_KapArkonaRuegen.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_KapArkonaRuegen.jpg" data-month="2026-03" data-market="de-DE">
+            <img src="thumbs/bing_KapArkonaRuegen.jpg" alt="Drohnenaufnahme des Peilturms am Kap Arkona, Rügen, Mecklenburg‑Vorpommern" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Drohnenaufnahme des Peilturms am Kap Arkona, Rügen, Mecklenburg‑Vorpommern">Drohnenaufnahme des Peilturms am Kap Arkona, Rügen, Mecklenburg‑Vorpommern</h3>
+                <p class="card-copyright">© Stefan Dinse/Getty Images</p>
+                <p class="card-date">📅 24/03/2026</p>
+                <p class="card-market">🌐 de-DE</p>
+            </div>
+        </div>
+        <div class="card" data-title="Lightning storm over saguaro cacti, Sonoran Desert, Arizona" data-copyright="© Jack Dykinga/Nature Picture Library" data-date="23/03/2026" data-filename="bing_SonoranStorm.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SonoranStorm.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_SonoranStorm.jpg" alt="Lightning storm over saguaro cacti, Sonoran Desert, Arizona" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Lightning storm over saguaro cacti, Sonoran Desert, Arizona">Lightning storm over saguaro cacti, Sonoran Desert, Arizona</h3>
+                <p class="card-copyright">© Jack Dykinga/Nature Picture Library</p>
+                <p class="card-date">📅 23/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Lake Tanganyika, Africa" data-copyright="© BEST-BACKGROUNDS/NASA/Shutterstock" data-date="22/03/2026" data-filename="bing_TanganyikaWater.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_TanganyikaWater.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_TanganyikaWater.jpg" alt="Lake Tanganyika, Africa" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Lake Tanganyika, Africa">Lake Tanganyika, Africa</h3>
+                <p class="card-copyright">© BEST-BACKGROUNDS/NASA/Shutterstock</p>
+                <p class="card-date">📅 22/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Letea Forest, Danube Delta, Romania" data-copyright="© Wild Wonders of Europe/Widstrand/Nature Picture Library" data-date="21/03/2026" data-filename="bing_LeteaForest.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_LeteaForest.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_LeteaForest.jpg" alt="Letea Forest, Danube Delta, Romania" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Letea Forest, Danube Delta, Romania">Letea Forest, Danube Delta, Romania</h3>
+                <p class="card-copyright">© Wild Wonders of Europe/Widstrand/Nature Picture Library</p>
+                <p class="card-date">📅 21/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="春日樱花，上海，中国" data-copyright="© junyyeung/Getty Images" data-date="20/03/2026" data-filename="bing_SpringEquinoxY26.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SpringEquinoxY26.jpg" data-month="2026-03" data-market="zh-CN">
+            <img src="thumbs/bing_SpringEquinoxY26.jpg" alt="春日樱花，上海，中国" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="春日樱花，上海，中国">春日樱花，上海，中国</h3>
+                <p class="card-copyright">© junyyeung/Getty Images</p>
+                <p class="card-date">📅 20/03/2026</p>
+                <p class="card-market">🌐 zh-CN</p>
+            </div>
+        </div>
+        <div class="card" data-title="Vue sur le quartier d’Endoume, les Îles du Frioul et le Château d'If, Marseille" data-copyright="© RIEGER Bertrand/hemis.fr/Alamy" data-date="20/03/2026" data-filename="bing_FrancophonieIf.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_FrancophonieIf.jpg" data-month="2026-03" data-market="fr-FR">
+            <img src="thumbs/bing_FrancophonieIf.jpg" alt="Vue sur le quartier d’Endoume, les Îles du Frioul et le Château d'If, Marseille" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Vue sur le quartier d’Endoume, les Îles du Frioul et le Château d'If, Marseille">Vue sur le quartier d’Endoume, les Îles du Frioul et le Château d'If, Marseille</h3>
+                <p class="card-copyright">© RIEGER Bertrand/hemis.fr/Alamy</p>
+                <p class="card-date">📅 20/03/2026</p>
+                <p class="card-market">🌐 fr-FR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Abubilla descansando sobre una piedra" data-copyright="© Brais Seara/Getty Images" data-date="20/03/2026" data-filename="bing_Equinox.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_Equinox.jpg" data-month="2026-03" data-market="es-ES">
+            <img src="thumbs/bing_Equinox.jpg" alt="Abubilla descansando sobre una piedra" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Abubilla descansando sobre una piedra">Abubilla descansando sobre una piedra</h3>
+                <p class="card-copyright">© Brais Seara/Getty Images</p>
+                <p class="card-date">📅 20/03/2026</p>
+                <p class="card-market">🌐 es-ES</p>
+            </div>
+        </div>
+        <div class="card" data-title="Leone con prole" data-copyright="© JasonPrince/iStock" data-date="19/03/2026" data-filename="bing_FathersDayItaly.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_FathersDayItaly.jpg" data-month="2026-03" data-market="it-IT">
+            <img src="thumbs/bing_FathersDayItaly.jpg" alt="Leone con prole" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Leone con prole">Leone con prole</h3>
+                <p class="card-copyright">© JasonPrince/iStock</p>
+                <p class="card-date">📅 19/03/2026</p>
+                <p class="card-market">🌐 it-IT</p>
+            </div>
+        </div>
+        <div class="card" data-title="Short-beaked echidna, Adelaide Hills, Australia" data-copyright="© Etienne Littlefair/naturepl.com" data-date="19/03/2026" data-filename="bing_EchidnaAustralia.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_EchidnaAustralia.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_EchidnaAustralia.jpg" alt="Short-beaked echidna, Adelaide Hills, Australia" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Short-beaked echidna, Adelaide Hills, Australia">Short-beaked echidna, Adelaide Hills, Australia</h3>
+                <p class="card-copyright">© Etienne Littlefair/naturepl.com</p>
+                <p class="card-date">📅 19/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Cherry blossoms at Tom McCall Waterfront Park, Portland, Oregon" data-copyright="© Eric Vogt/Tandem Stills + Motion" data-date="18/03/2026" data-filename="bing_PortlandBlossoms.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_PortlandBlossoms.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_PortlandBlossoms.jpg" alt="Cherry blossoms at Tom McCall Waterfront Park, Portland, Oregon" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Cherry blossoms at Tom McCall Waterfront Park, Portland, Oregon">Cherry blossoms at Tom McCall Waterfront Park, Portland, Oregon</h3>
+                <p class="card-copyright">© Eric Vogt/Tandem Stills + Motion</p>
+                <p class="card-date">📅 18/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Vista aérea do Rio Negro, Parque Nacional dos Lençóis Maranhenses, Maranhão" data-copyright="© Ignacio Palacios/Getty Images" data-date="18/03/2026" data-filename="bing_AerialLencois.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_AerialLencois.jpg" data-month="2026-03" data-market="pt-BR">
+            <img src="thumbs/bing_AerialLencois.jpg" alt="Vista aérea do Rio Negro, Parque Nacional dos Lençóis Maranhenses, Maranhão" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Vista aérea do Rio Negro, Parque Nacional dos Lençóis Maranhenses, Maranhão">Vista aérea do Rio Negro, Parque Nacional dos Lençóis Maranhenses, Maranhão</h3>
+                <p class="card-copyright">© Ignacio Palacios/Getty Images</p>
+                <p class="card-date">📅 18/03/2026</p>
+                <p class="card-market">🌐 pt-BR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Grianan of Aileach ring fort, Donegal, Ireland" data-copyright="© aluxum/Getty Images" data-date="17/03/2026" data-filename="bing_DonegalFort.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_DonegalFort.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_DonegalFort.jpg" alt="Grianan of Aileach ring fort, Donegal, Ireland" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Grianan of Aileach ring fort, Donegal, Ireland">Grianan of Aileach ring fort, Donegal, Ireland</h3>
+                <p class="card-copyright">© aluxum/Getty Images</p>
+                <p class="card-date">📅 17/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Giant panda eating bamboo, China" data-copyright="© Entwicklungsknecht/Getty Images" data-date="16/03/2026" data-filename="bing_PandaForest.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_PandaForest.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_PandaForest.jpg" alt="Giant panda eating bamboo, China" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Giant panda eating bamboo, China">Giant panda eating bamboo, China</h3>
+                <p class="card-copyright">© Entwicklungsknecht/Getty Images</p>
+                <p class="card-date">📅 16/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Aurora over Spirit Island on Maligne Lake, Jasper National Park, Alberta" data-copyright="© Mumemories/istock/Getty Images" data-date="16/03/2026" data-filename="bing_AuroraIsland.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_AuroraIsland.jpg" data-month="2026-03" data-market="en-CA">
+            <img src="thumbs/bing_AuroraIsland.jpg" alt="Aurora over Spirit Island on Maligne Lake, Jasper National Park, Alberta" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Aurora over Spirit Island on Maligne Lake, Jasper National Park, Alberta">Aurora over Spirit Island on Maligne Lake, Jasper National Park, Alberta</h3>
+                <p class="card-copyright">© Mumemories/istock/Getty Images</p>
+                <p class="card-date">📅 16/03/2026</p>
+                <p class="card-market">🌐 en-CA</p>
+            </div>
+        </div>
+        <div class="card" data-title="Pacific Rim National Park Reserve, Vancouver Island, Canada" data-copyright="© EmilyNorton/Getty Images" data-date="15/03/2026" data-filename="bing_PacificRimNP.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_PacificRimNP.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_PacificRimNP.jpg" alt="Pacific Rim National Park Reserve, Vancouver Island, Canada" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Pacific Rim National Park Reserve, Vancouver Island, Canada">Pacific Rim National Park Reserve, Vancouver Island, Canada</h3>
+                <p class="card-copyright">© EmilyNorton/Getty Images</p>
+                <p class="card-date">📅 15/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="A robin feeding its chick, Netherlands" data-copyright="© CreativeNature_nl/iStock/Getty Images" data-date="15/03/2026" data-filename="bing_MotheringSunday2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_MotheringSunday2026.jpg" data-month="2026-03" data-market="en-GB">
+            <img src="thumbs/bing_MotheringSunday2026.jpg" alt="A robin feeding its chick, Netherlands" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="A robin feeding its chick, Netherlands">A robin feeding its chick, Netherlands</h3>
+                <p class="card-copyright">© CreativeNature_nl/iStock/Getty Images</p>
+                <p class="card-date">📅 15/03/2026</p>
+                <p class="card-market">🌐 en-GB</p>
+            </div>
+        </div>
+        <div class="card" data-title="Königssee bei Schönau am Königssee, Bayern" data-copyright="© EyeEm Mobile GmbH/Getty Images" data-date="15/03/2026" data-filename="bing_KoenigsseeFog.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_KoenigsseeFog.jpg" data-month="2026-03" data-market="de-DE">
+            <img src="thumbs/bing_KoenigsseeFog.jpg" alt="Königssee bei Schönau am Königssee, Bayern" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Königssee bei Schönau am Königssee, Bayern">Königssee bei Schönau am Königssee, Bayern</h3>
+                <p class="card-copyright">© EyeEm Mobile GmbH/Getty Images</p>
+                <p class="card-date">📅 15/03/2026</p>
+                <p class="card-market">🌐 de-DE</p>
+            </div>
+        </div>
+        <div class="card" data-title="Vista de las Torres de Serranos durante La Crida de las Fallas, Valencia" data-copyright="© SOPA Images/Getty Images" data-date="15/03/2026" data-filename="bing_FallasValencia.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_FallasValencia.jpg" data-month="2026-03" data-market="es-ES">
+            <img src="thumbs/bing_FallasValencia.jpg" alt="Vista de las Torres de Serranos durante La Crida de las Fallas, Valencia" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Vista de las Torres de Serranos durante La Crida de las Fallas, Valencia">Vista de las Torres de Serranos durante La Crida de las Fallas, Valencia</h3>
+                <p class="card-copyright">© SOPA Images/Getty Images</p>
+                <p class="card-date">📅 15/03/2026</p>
+                <p class="card-market">🌐 es-ES</p>
+            </div>
+        </div>
+        <div class="card" data-title="Lanyon Quoit, a Neolithic dolmen in Cornwall, England" data-copyright="© Helen Hotson/Alamy" data-date="14/03/2026" data-filename="bing_CornwallDolmen.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_CornwallDolmen.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_CornwallDolmen.jpg" alt="Lanyon Quoit, a Neolithic dolmen in Cornwall, England" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Lanyon Quoit, a Neolithic dolmen in Cornwall, England">Lanyon Quoit, a Neolithic dolmen in Cornwall, England</h3>
+                <p class="card-copyright">© Helen Hotson/Alamy</p>
+                <p class="card-date">📅 14/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Acarás-bandeira amarelos, Brasil" data-copyright="© Gregory_DUBUS/iStock/Getty Images Plus" data-date="14/03/2026" data-filename="bing_AnimalDay.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_AnimalDay.jpg" data-month="2026-03" data-market="pt-BR">
+            <img src="thumbs/bing_AnimalDay.jpg" alt="Acarás-bandeira amarelos, Brasil" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Acarás-bandeira amarelos, Brasil">Acarás-bandeira amarelos, Brasil</h3>
+                <p class="card-copyright">© Gregory_DUBUS/iStock/Getty Images Plus</p>
+                <p class="card-date">📅 14/03/2026</p>
+                <p class="card-market">🌐 pt-BR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Vaults of the Church of Notre Dame de Bon-Port, Les Sables-d'Olonne, France" data-copyright="© Helmut Meyer zur Capellen/Alamy" data-date="13/03/2026" data-filename="bing_VendeeVaults.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_VendeeVaults.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_VendeeVaults.jpg" alt="Vaults of the Church of Notre Dame de Bon-Port, Les Sables-d'Olonne, France" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Vaults of the Church of Notre Dame de Bon-Port, Les Sables-d'Olonne, France">Vaults of the Church of Notre Dame de Bon-Port, Les Sables-d'Olonne, France</h3>
+                <p class="card-copyright">© Helmut Meyer zur Capellen/Alamy</p>
+                <p class="card-date">📅 13/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="東大寺, 奈良県 奈良市" data-copyright="© Sean Pavone/Alamy" data-date="12/03/2026" data-filename="bing_TodaijiTempleOmizutori2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_TodaijiTempleOmizutori2026.jpg" data-month="2026-03" data-market="ja-JP">
+            <img src="thumbs/bing_TodaijiTempleOmizutori2026.jpg" alt="東大寺, 奈良県 奈良市" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="東大寺, 奈良県 奈良市">東大寺, 奈良県 奈良市</h3>
+                <p class="card-copyright">© Sean Pavone/Alamy</p>
+                <p class="card-date">📅 12/03/2026</p>
+                <p class="card-market">🌐 ja-JP</p>
+            </div>
+        </div>
+        <div class="card" data-title="Juvenile sunbittern displaying at nest, Ecuador" data-copyright="© Andy Rouse/naturepl.com" data-date="12/03/2026" data-filename="bing_SunbitternEcuador.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SunbitternEcuador.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_SunbitternEcuador.jpg" alt="Juvenile sunbittern displaying at nest, Ecuador" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Juvenile sunbittern displaying at nest, Ecuador">Juvenile sunbittern displaying at nest, Ecuador</h3>
+                <p class="card-copyright">© Andy Rouse/naturepl.com</p>
+                <p class="card-date">📅 12/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="復興の願いが書かれた灯籠, 宮城県 名取市" data-copyright="© NurPhoto/Getty Images" data-date="11/03/2026" data-filename="bing_TohokuEarthquakeMemorial2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_TohokuEarthquakeMemorial2026.jpg" data-month="2026-03" data-market="ja-JP">
+            <img src="thumbs/bing_TohokuEarthquakeMemorial2026.jpg" alt="復興の願いが書かれた灯籠, 宮城県 名取市" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="復興の願いが書かれた灯籠, 宮城県 名取市">復興の願いが書かれた灯籠, 宮城県 名取市</h3>
+                <p class="card-copyright">© NurPhoto/Getty Images</p>
+                <p class="card-date">📅 11/03/2026</p>
+                <p class="card-market">🌐 ja-JP</p>
+            </div>
+        </div>
+        <div class="card" data-title="Peach trees in bloom, Cieza, Murcia, Spain" data-copyright="© Juan Maria Coy Vergara/Getty Images" data-date="11/03/2026" data-filename="bing_PeachBloom.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_PeachBloom.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_PeachBloom.jpg" alt="Peach trees in bloom, Cieza, Murcia, Spain" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Peach trees in bloom, Cieza, Murcia, Spain">Peach trees in bloom, Cieza, Murcia, Spain</h3>
+                <p class="card-copyright">© Juan Maria Coy Vergara/Getty Images</p>
+                <p class="card-date">📅 11/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Zumaia, Guipúzcoa, País Vasco" data-copyright="© David González Rebollo/Getty Images" data-date="10/03/2026" data-filename="bing_Zumaia.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_Zumaia.jpg" data-month="2026-03" data-market="es-ES">
+            <img src="thumbs/bing_Zumaia.jpg" alt="Zumaia, Guipúzcoa, País Vasco" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Zumaia, Guipúzcoa, País Vasco">Zumaia, Guipúzcoa, País Vasco</h3>
+                <p class="card-copyright">© David González Rebollo/Getty Images</p>
+                <p class="card-date">📅 10/03/2026</p>
+                <p class="card-market">🌐 es-ES</p>
+            </div>
+        </div>
+        <div class="card" data-title="Geothermal blue pool Bláhver at Hveravellir, Iceland" data-copyright="© Juan Maria Coy Vergara/Getty Images" data-date="10/03/2026" data-filename="bing_SpringIceland.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SpringIceland.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_SpringIceland.jpg" alt="Geothermal blue pool Bláhver at Hveravellir, Iceland" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Geothermal blue pool Bláhver at Hveravellir, Iceland">Geothermal blue pool Bláhver at Hveravellir, Iceland</h3>
+                <p class="card-copyright">© Juan Maria Coy Vergara/Getty Images</p>
+                <p class="card-date">📅 10/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Gray seal sleeping on the beach, Orkney Islands, Scotland" data-copyright="© Andrew Mason/Minden Pictures" data-date="09/03/2026" data-filename="bing_NappingSeal.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_NappingSeal.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_NappingSeal.jpg" alt="Gray seal sleeping on the beach, Orkney Islands, Scotland" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Gray seal sleeping on the beach, Orkney Islands, Scotland">Gray seal sleeping on the beach, Orkney Islands, Scotland</h3>
+                <p class="card-copyright">© Andrew Mason/Minden Pictures</p>
+                <p class="card-date">📅 09/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Neues Schloss am Schlossplatz in Stuttgart, Baden‑Württemberg" data-copyright="© Jorg Greuel/Getty Images" data-date="08/03/2026" data-filename="bing_StuttgartSchlossplatz.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_StuttgartSchlossplatz.jpg" data-month="2026-03" data-market="de-DE">
+            <img src="thumbs/bing_StuttgartSchlossplatz.jpg" alt="Neues Schloss am Schlossplatz in Stuttgart, Baden‑Württemberg" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Neues Schloss am Schlossplatz in Stuttgart, Baden‑Württemberg">Neues Schloss am Schlossplatz in Stuttgart, Baden‑Württemberg</h3>
+                <p class="card-copyright">© Jorg Greuel/Getty Images</p>
+                <p class="card-date">📅 08/03/2026</p>
+                <p class="card-market">🌐 de-DE</p>
+            </div>
+        </div>
+        <div class="card" data-title="Mimosa" data-copyright="© d!g!tALE by Alessandro Ciabini/Moment" data-date="08/03/2026" data-filename="bing_FestaDellaDonna.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_FestaDellaDonna.jpg" data-month="2026-03" data-market="it-IT">
+            <img src="thumbs/bing_FestaDellaDonna.jpg" alt="Mimosa" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Mimosa">Mimosa</h3>
+                <p class="card-copyright">© d!g!tALE by Alessandro Ciabini/Moment</p>
+                <p class="card-date">📅 08/03/2026</p>
+                <p class="card-market">🌐 it-IT</p>
+            </div>
+        </div>
+        <div class="card" data-title="Jeune cormoran" data-copyright="© GiovanniCaruso/GettyImages" data-date="08/03/2026" data-filename="bing_BirdCormorant.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_BirdCormorant.jpg" data-month="2026-03" data-market="fr-FR">
+            <img src="thumbs/bing_BirdCormorant.jpg" alt="Jeune cormoran" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Jeune cormoran">Jeune cormoran</h3>
+                <p class="card-copyright">© GiovanniCaruso/GettyImages</p>
+                <p class="card-date">📅 08/03/2026</p>
+                <p class="card-market">🌐 fr-FR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Akbar's tomb, Agra, Uttar Pradesh" data-copyright="© zeelichsheng/Shutterstock" data-date="08/03/2026" data-filename="bing_AkbarAgra.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_AkbarAgra.jpg" data-month="2026-03" data-market="en-IN">
+            <img src="thumbs/bing_AkbarAgra.jpg" alt="Akbar's tomb, Agra, Uttar Pradesh" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Akbar's tomb, Agra, Uttar Pradesh">Akbar's tomb, Agra, Uttar Pradesh</h3>
+                <p class="card-copyright">© zeelichsheng/Shutterstock</p>
+                <p class="card-date">📅 08/03/2026</p>
+                <p class="card-market">🌐 en-IN</p>
+            </div>
+        </div>
+        <div class="card" data-title="Espreguiçadeiras na praia de Vai, Creta, Grécia" data-copyright="© borchee/Getty Images" data-date="07/03/2026" data-filename="bing_VaiUmbrellas.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_VaiUmbrellas.jpg" data-month="2026-03" data-market="pt-BR">
+            <img src="thumbs/bing_VaiUmbrellas.jpg" alt="Espreguiçadeiras na praia de Vai, Creta, Grécia" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Espreguiçadeiras na praia de Vai, Creta, Grécia">Espreguiçadeiras na praia de Vai, Creta, Grécia</h3>
+                <p class="card-copyright">© borchee/Getty Images</p>
+                <p class="card-date">📅 07/03/2026</p>
+                <p class="card-market">🌐 pt-BR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Basilica reale pontificia di San Francesco di Paola, Napoli, Campania" data-copyright="© javarman3/Getty Images" data-date="07/03/2026" data-filename="bing_NaplesBasilica.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_NaplesBasilica.jpg" data-month="2026-03" data-market="it-IT">
+            <img src="thumbs/bing_NaplesBasilica.jpg" alt="Basilica reale pontificia di San Francesco di Paola, Napoli, Campania" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Basilica reale pontificia di San Francesco di Paola, Napoli, Campania">Basilica reale pontificia di San Francesco di Paola, Napoli, Campania</h3>
+                <p class="card-copyright">© javarman3/Getty Images</p>
+                <p class="card-date">📅 07/03/2026</p>
+                <p class="card-market">🌐 it-IT</p>
+            </div>
+        </div>
+        <div class="card" data-title="Humpback whales, Monterey Bay, California, United States" data-copyright="© Kiliii Fish/Cavan Images" data-date="07/03/2026" data-filename="bing_MontereyHumpbacks.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_MontereyHumpbacks.jpg" data-month="2026-03" data-market="en-IN">
+            <img src="thumbs/bing_MontereyHumpbacks.jpg" alt="Humpback whales, Monterey Bay, California, United States" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Humpback whales, Monterey Bay, California, United States">Humpback whales, Monterey Bay, California, United States</h3>
+                <p class="card-copyright">© Kiliii Fish/Cavan Images</p>
+                <p class="card-date">📅 07/03/2026</p>
+                <p class="card-market">🌐 en-IN</p>
+            </div>
+        </div>
+        <div class="card" data-title="Le Lac Gentau enneigé, Pyrénées Atlantiques" data-copyright="© MICHAUX Stéphane/Hemis.fr/Alamy" data-date="07/03/2026" data-filename="bing_LacGentau.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_LacGentau.jpg" data-month="2026-03" data-market="fr-FR">
+            <img src="thumbs/bing_LacGentau.jpg" alt="Le Lac Gentau enneigé, Pyrénées Atlantiques" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Le Lac Gentau enneigé, Pyrénées Atlantiques">Le Lac Gentau enneigé, Pyrénées Atlantiques</h3>
+                <p class="card-copyright">© MICHAUX Stéphane/Hemis.fr/Alamy</p>
+                <p class="card-date">📅 07/03/2026</p>
+                <p class="card-market">🌐 fr-FR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Sunrise on the Brocken, Harz National Park, Germany" data-copyright="© imageBROKER/AVTG/Getty Images" data-date="07/03/2026" data-filename="bing_BrockenSunrise.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_BrockenSunrise.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_BrockenSunrise.jpg" alt="Sunrise on the Brocken, Harz National Park, Germany" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Sunrise on the Brocken, Harz National Park, Germany">Sunrise on the Brocken, Harz National Park, Germany</h3>
+                <p class="card-copyright">© imageBROKER/AVTG/Getty Images</p>
+                <p class="card-date">📅 07/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="The Wave residential building, Vejle, Denmark" data-copyright="© Frank Bach/Alamy" data-date="06/03/2026" data-filename="bing_WaveDenmark.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_WaveDenmark.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_WaveDenmark.jpg" alt="The Wave residential building, Vejle, Denmark" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="The Wave residential building, Vejle, Denmark">The Wave residential building, Vejle, Denmark</h3>
+                <p class="card-copyright">© Frank Bach/Alamy</p>
+                <p class="card-date">📅 06/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Evening over Göreme, Cappadocia, Türkiye" data-copyright="© ONNAJA/Getty Images" data-date="05/03/2026" data-filename="bing_GoremeTwilight.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_GoremeTwilight.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_GoremeTwilight.jpg" alt="Evening over Göreme, Cappadocia, Türkiye" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Evening over Göreme, Cappadocia, Türkiye">Evening over Göreme, Cappadocia, Türkiye</h3>
+                <p class="card-copyright">© ONNAJA/Getty Images</p>
+                <p class="card-date">📅 05/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Purple crocus flowers, Seven Rila Lakes, Bulgaria" data-copyright="© Maya Karkalicheva/Getty Images" data-date="04/03/2026" data-filename="bing_RilaCrocuses.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_RilaCrocuses.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_RilaCrocuses.jpg" alt="Purple crocus flowers, Seven Rila Lakes, Bulgaria" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Purple crocus flowers, Seven Rila Lakes, Bulgaria">Purple crocus flowers, Seven Rila Lakes, Bulgaria</h3>
+                <p class="card-copyright">© Maya Karkalicheva/Getty Images</p>
+                <p class="card-date">📅 04/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Group of people playing Holi in Rajasthan" data-copyright="© Bartosz Hadyniak/Getty Images" data-date="03/03/2026" data-filename="bing_RJINHoli.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_RJINHoli.jpg" data-month="2026-03" data-market="en-IN">
+            <img src="thumbs/bing_RJINHoli.jpg" alt="Group of people playing Holi in Rajasthan" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Group of people playing Holi in Rajasthan">Group of people playing Holi in Rajasthan</h3>
+                <p class="card-copyright">© Bartosz Hadyniak/Getty Images</p>
+                <p class="card-date">📅 03/03/2026</p>
+                <p class="card-market">🌐 en-IN</p>
+            </div>
+        </div>
+        <div class="card" data-title="元宵节期间悬挂的宫灯，北京自贡灯会现场，北京，中国" data-copyright="© Grisha Bruev/Shutterstock" data-date="03/03/2026" data-filename="bing_LanternFestivalY26.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_LanternFestivalY26.jpg" data-month="2026-03" data-market="zh-CN">
+            <img src="thumbs/bing_LanternFestivalY26.jpg" alt="元宵节期间悬挂的宫灯，北京自贡灯会现场，北京，中国" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="元宵节期间悬挂的宫灯，北京自贡灯会现场，北京，中国">元宵节期间悬挂的宫灯，北京自贡灯会现场，北京，中国</h3>
+                <p class="card-copyright">© Grisha Bruev/Shutterstock</p>
+                <p class="card-date">📅 03/03/2026</p>
+                <p class="card-market">🌐 zh-CN</p>
+            </div>
+        </div>
+        <div class="card" data-title="竹筒から顔をのぞかせる可愛いひな人形" data-copyright="© Bong Grit/Getty Images" data-date="03/03/2026" data-filename="bing_HinaMatsuri2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_HinaMatsuri2026.jpg" data-month="2026-03" data-market="ja-JP">
+            <img src="thumbs/bing_HinaMatsuri2026.jpg" alt="竹筒から顔をのぞかせる可愛いひな人形" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="竹筒から顔をのぞかせる可愛いひな人形">竹筒から顔をのぞかせる可愛いひな人形</h3>
+                <p class="card-copyright">© Bong Grit/Getty Images</p>
+                <p class="card-date">📅 03/03/2026</p>
+                <p class="card-market">🌐 ja-JP</p>
+            </div>
+        </div>
+        <div class="card" data-title="African elephant calf playing with its mother, Masai Mara National Reserve, Kenya" data-copyright="© Denis-Huot/naturepl.com" data-date="03/03/2026" data-filename="bing_BabyElephant.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_BabyElephant.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_BabyElephant.jpg" alt="African elephant calf playing with its mother, Masai Mara National Reserve, Kenya" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="African elephant calf playing with its mother, Masai Mara National Reserve, Kenya">African elephant calf playing with its mother, Masai Mara National Reserve, Kenya</h3>
+                <p class="card-copyright">© Denis-Huot/naturepl.com</p>
+                <p class="card-date">📅 03/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Harbor and longtail boats at Ko Samui, Thailand" data-copyright="© Foto2rich/Shutterstock" data-date="02/03/2026" data-filename="bing_SamuiThailand.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SamuiThailand.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_SamuiThailand.jpg" alt="Harbor and longtail boats at Ko Samui, Thailand" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Harbor and longtail boats at Ko Samui, Thailand">Harbor and longtail boats at Ko Samui, Thailand</h3>
+                <p class="card-copyright">© Foto2rich/Shutterstock</p>
+                <p class="card-date">📅 02/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Piazza Vincenzo Bellini, Catania, Sicilia" data-copyright="© KavalenkavaVolha/iStock" data-date="02/03/2026" data-filename="bing_PiazzaCatania.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_PiazzaCatania.jpg" data-month="2026-03" data-market="it-IT">
+            <img src="thumbs/bing_PiazzaCatania.jpg" alt="Piazza Vincenzo Bellini, Catania, Sicilia" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Piazza Vincenzo Bellini, Catania, Sicilia">Piazza Vincenzo Bellini, Catania, Sicilia</h3>
+                <p class="card-copyright">© KavalenkavaVolha/iStock</p>
+                <p class="card-date">📅 02/03/2026</p>
+                <p class="card-market">🌐 it-IT</p>
+            </div>
+        </div>
+        <div class="card" data-title="Suffragette celebrations, August 27, 1920, New York City" data-copyright="© Keystone/Hulton Archive/Getty Images" data-date="01/03/2026" data-filename="bing_SuffragettesNY.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SuffragettesNY.jpg" data-month="2026-03" data-market="en-US">
+            <img src="thumbs/bing_SuffragettesNY.jpg" alt="Suffragette celebrations, August 27, 1920, New York City" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Suffragette celebrations, August 27, 1920, New York City">Suffragette celebrations, August 27, 1920, New York City</h3>
+                <p class="card-copyright">© Keystone/Hulton Archive/Getty Images</p>
+                <p class="card-date">📅 01/03/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="St Davids Cathedral, Pembrokeshire, Wales" data-copyright="© Terence Waeland/Alamy" data-date="01/03/2026" data-filename="bing_StDavidsDay2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_StDavidsDay2026.jpg" data-month="2026-03" data-market="en-GB">
+            <img src="thumbs/bing_StDavidsDay2026.jpg" alt="St Davids Cathedral, Pembrokeshire, Wales" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="St Davids Cathedral, Pembrokeshire, Wales">St Davids Cathedral, Pembrokeshire, Wales</h3>
+                <p class="card-copyright">© Terence Waeland/Alamy</p>
+                <p class="card-date">📅 01/03/2026</p>
+                <p class="card-market">🌐 en-GB</p>
+            </div>
+        </div>
+        <div class="card" data-title="Snowy owl near the Canadian Rockies" data-copyright="© www.harshadventure.com/Moment/Getty Images" data-date="01/03/2026" data-filename="bing_OwlonGuard.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_OwlonGuard.jpg" data-month="2026-03" data-market="en-CA">
+            <img src="thumbs/bing_OwlonGuard.jpg" alt="Snowy owl near the Canadian Rockies" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Snowy owl near the Canadian Rockies">Snowy owl near the Canadian Rockies</h3>
+                <p class="card-copyright">© www.harshadventure.com/Moment/Getty Images</p>
+                <p class="card-date">📅 01/03/2026</p>
+                <p class="card-market">🌐 en-CA</p>
+            </div>
+        </div>
+        <div class="card" data-title="Ibiza, Balearische Inseln, Spanien" data-copyright="© tokar/Shutterstock" data-date="01/03/2026" data-filename="bing_BalearesDay.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_BalearesDay.jpg" data-month="2026-03" data-market="de-DE">
+            <img src="thumbs/bing_BalearesDay.jpg" alt="Ibiza, Balearische Inseln, Spanien" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Ibiza, Balearische Inseln, Spanien">Ibiza, Balearische Inseln, Spanien</h3>
+                <p class="card-copyright">© tokar/Shutterstock</p>
+                <p class="card-date">📅 01/03/2026</p>
+                <p class="card-market">🌐 de-DE</p>
+            </div>
+        </div>
+        <div class="card" data-title="Bondinho e Pão de Açúcar no Rio de Janeiro" data-copyright="© tokar/Shutterstock" data-date="01/03/2026" data-filename="bing_AnivRio.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_AnivRio.jpg" data-month="2026-03" data-market="pt-BR">
+            <img src="thumbs/bing_AnivRio.jpg" alt="Bondinho e Pão de Açúcar no Rio de Janeiro" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Bondinho e Pão de Açúcar no Rio de Janeiro">Bondinho e Pão de Açúcar no Rio de Janeiro</h3>
+                <p class="card-copyright">© tokar/Shutterstock</p>
+                <p class="card-date">📅 01/03/2026</p>
+                <p class="card-market">🌐 pt-BR</p>
+            </div>
+        </div>
+<!--MONTH_SEPARATOR:February 2026:2026-02-->
+        <div class="card" data-title="Sevilla, Andalucía" data-copyright="© Sarmad Al Lawati/Shutterstock" data-date="28/02/2026" data-filename="bing_andaluciasevilla.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_andaluciasevilla.jpg" data-month="2026-02" data-market="es-ES">
+            <img src="thumbs/bing_andaluciasevilla.jpg" alt="Sevilla, Andalucía" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Sevilla, Andalucía">Sevilla, Andalucía</h3>
+                <p class="card-copyright">© Sarmad Al Lawati/Shutterstock</p>
+                <p class="card-date">📅 28/02/2026</p>
+                <p class="card-market">🌐 es-ES</p>
+            </div>
+        </div>
+        <div class="card" data-title="Olo'upena Falls, island of Moloka'i, Hawaii" data-copyright="© Andrew Aylett/Getty Images" data-date="28/02/2026" data-filename="bing_OloupenaFalls.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_OloupenaFalls.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_OloupenaFalls.jpg" alt="Olo'upena Falls, island of Moloka'i, Hawaii" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Olo'upena Falls, island of Moloka'i, Hawaii">Olo'upena Falls, island of Moloka'i, Hawaii</h3>
+                <p class="card-copyright">© Andrew Aylett/Getty Images</p>
+                <p class="card-date">📅 28/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Polar bear cub walking across pack ice, Arctic National Wildlife Refuge, Alaska" data-copyright="© Steven Kazlowski/naturepl.com" data-date="27/02/2026" data-filename="bing_ArcitcCub.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_ArcitcCub.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_ArcitcCub.jpg" alt="Polar bear cub walking across pack ice, Arctic National Wildlife Refuge, Alaska" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Polar bear cub walking across pack ice, Arctic National Wildlife Refuge, Alaska">Polar bear cub walking across pack ice, Arctic National Wildlife Refuge, Alaska</h3>
+                <p class="card-copyright">© Steven Kazlowski/naturepl.com</p>
+                <p class="card-date">📅 27/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Grand Canyon and the Colorado River, Arizona" data-copyright="© Matt Anderson Photography/Getty Images" data-date="26/02/2026" data-filename="bing_GrandSunset.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_GrandSunset.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_GrandSunset.jpg" alt="Grand Canyon and the Colorado River, Arizona" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Grand Canyon and the Colorado River, Arizona">Grand Canyon and the Colorado River, Arizona</h3>
+                <p class="card-copyright">© Matt Anderson Photography/Getty Images</p>
+                <p class="card-date">📅 26/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Ice cave in the Mendenhall Glacier, Alaska" data-copyright="© Designpics/Adobe Stock" data-date="25/02/2026" data-filename="bing_MendenhallCave.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_MendenhallCave.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_MendenhallCave.jpg" alt="Ice cave in the Mendenhall Glacier, Alaska" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Ice cave in the Mendenhall Glacier, Alaska">Ice cave in the Mendenhall Glacier, Alaska</h3>
+                <p class="card-copyright">© Designpics/Adobe Stock</p>
+                <p class="card-date">📅 25/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Water lilies at Grand Cenote, Tulum, Mexico" data-copyright="© Christian Vizl/Tandem Stills + Motion" data-date="24/02/2026" data-filename="bing_TulumLilies.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_TulumLilies.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_TulumLilies.jpg" alt="Water lilies at Grand Cenote, Tulum, Mexico" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Water lilies at Grand Cenote, Tulum, Mexico">Water lilies at Grand Cenote, Tulum, Mexico</h3>
+                <p class="card-copyright">© Christian Vizl/Tandem Stills + Motion</p>
+                <p class="card-date">📅 24/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Spiaggia di Sanremo, Liguria" data-copyright="© fbxx/iStock/Getty Images" data-date="24/02/2026" data-filename="bing_SanremoLiguria.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SanremoLiguria.jpg" data-month="2026-02" data-market="it-IT">
+            <img src="thumbs/bing_SanremoLiguria.jpg" alt="Spiaggia di Sanremo, Liguria" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Spiaggia di Sanremo, Liguria">Spiaggia di Sanremo, Liguria</h3>
+                <p class="card-copyright">© fbxx/iStock/Getty Images</p>
+                <p class="card-date">📅 24/02/2026</p>
+                <p class="card-market">🌐 it-IT</p>
+            </div>
+        </div>
+        <div class="card" data-title="富士山, 静岡県" data-copyright="© Cravetiger/Getty Images" data-date="23/02/2026" data-filename="bing_MountFuji2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_MountFuji2026.jpg" data-month="2026-02" data-market="ja-JP">
+            <img src="thumbs/bing_MountFuji2026.jpg" alt="富士山, 静岡県" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="富士山, 静岡県">富士山, 静岡県</h3>
+                <p class="card-copyright">© Cravetiger/Getty Images</p>
+                <p class="card-date">📅 23/02/2026</p>
+                <p class="card-market">🌐 ja-JP</p>
+            </div>
+        </div>
+        <div class="card" data-title="Great white egret, Upper Bavaria, Germany" data-copyright="© Konrad Wothe/naturepl.com" data-date="23/02/2026" data-filename="bing_BavariaEgret.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_BavariaEgret.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_BavariaEgret.jpg" alt="Great white egret, Upper Bavaria, Germany" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Great white egret, Upper Bavaria, Germany">Great white egret, Upper Bavaria, Germany</h3>
+                <p class="card-copyright">© Konrad Wothe/naturepl.com</p>
+                <p class="card-date">📅 23/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="The hill of Mam Tor, Derbyshire, England" data-copyright="© john finney photography/Getty Images" data-date="22/02/2026" data-filename="bing_MamTorSunrise.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_MamTorSunrise.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_MamTorSunrise.jpg" alt="The hill of Mam Tor, Derbyshire, England" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="The hill of Mam Tor, Derbyshire, England">The hill of Mam Tor, Derbyshire, England</h3>
+                <p class="card-copyright">© john finney photography/Getty Images</p>
+                <p class="card-date">📅 22/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Vista aérea das Cataratas do Iguaçu, Foz do Iguaçu, Paraná" data-copyright="© NidoHuebl/Getty Images" data-date="22/02/2026" data-filename="bing_IgFalls.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_IgFalls.jpg" data-month="2026-02" data-market="pt-BR">
+            <img src="thumbs/bing_IgFalls.jpg" alt="Vista aérea das Cataratas do Iguaçu, Foz do Iguaçu, Paraná" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Vista aérea das Cataratas do Iguaçu, Foz do Iguaçu, Paraná">Vista aérea das Cataratas do Iguaçu, Foz do Iguaçu, Paraná</h3>
+                <p class="card-copyright">© NidoHuebl/Getty Images</p>
+                <p class="card-date">📅 22/02/2026</p>
+                <p class="card-market">🌐 pt-BR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Red fox standing in snowfall, Grand Teton National Park, Wyoming" data-copyright="© Radomir Jakubowski/naturepl.com" data-date="21/02/2026" data-filename="bing_TetonFox.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_TetonFox.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_TetonFox.jpg" alt="Red fox standing in snowfall, Grand Teton National Park, Wyoming" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Red fox standing in snowfall, Grand Teton National Park, Wyoming">Red fox standing in snowfall, Grand Teton National Park, Wyoming</h3>
+                <p class="card-copyright">© Radomir Jakubowski/naturepl.com</p>
+                <p class="card-date">📅 21/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Le bouquetin des Alpes" data-copyright="© AUSLOOS Henry/hemis.fr/Alamy" data-date="21/02/2026" data-filename="bing_CapraIbex.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_CapraIbex.jpg" data-month="2026-02" data-market="fr-FR">
+            <img src="thumbs/bing_CapraIbex.jpg" alt="Le bouquetin des Alpes" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Le bouquetin des Alpes">Le bouquetin des Alpes</h3>
+                <p class="card-copyright">© AUSLOOS Henry/hemis.fr/Alamy</p>
+                <p class="card-date">📅 21/02/2026</p>
+                <p class="card-market">🌐 fr-FR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Höckerschwan schwimmt mit Küken, Hessen" data-copyright="© Wilfried Martin/Getty Images" data-date="20/02/2026" data-filename="bing_SwanHesse.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SwanHesse.jpg" data-month="2026-02" data-market="de-DE">
+            <img src="thumbs/bing_SwanHesse.jpg" alt="Höckerschwan schwimmt mit Küken, Hessen" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Höckerschwan schwimmt mit Küken, Hessen">Höckerschwan schwimmt mit Küken, Hessen</h3>
+                <p class="card-copyright">© Wilfried Martin/Getty Images</p>
+                <p class="card-date">📅 20/02/2026</p>
+                <p class="card-market">🌐 de-DE</p>
+            </div>
+        </div>
+        <div class="card" data-title="Fête du citron de Menton" data-copyright="© tanazura/Shutterstock" data-date="20/02/2026" data-filename="bing_LemonFestival.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_LemonFestival.jpg" data-month="2026-02" data-market="fr-FR">
+            <img src="thumbs/bing_LemonFestival.jpg" alt="Fête du citron de Menton" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Fête du citron de Menton">Fête du citron de Menton</h3>
+                <p class="card-copyright">© tanazura/Shutterstock</p>
+                <p class="card-date">📅 20/02/2026</p>
+                <p class="card-market">🌐 fr-FR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Horsetail Fall in Yosemite National Park, California" data-copyright="© Jorge Villalba/Getty Images" data-date="20/02/2026" data-filename="bing_AdamsFirefall.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_AdamsFirefall.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_AdamsFirefall.jpg" alt="Horsetail Fall in Yosemite National Park, California" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Horsetail Fall in Yosemite National Park, California">Horsetail Fall in Yosemite National Park, California</h3>
+                <p class="card-copyright">© Jorge Villalba/Getty Images</p>
+                <p class="card-date">📅 20/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="La Alhambra durante el invierno en Granada" data-copyright="© David Skinner/Getty Images" data-date="19/02/2026" data-filename="bing_GranadaAlhambra.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_GranadaAlhambra.jpg" data-month="2026-02" data-market="es-ES">
+            <img src="thumbs/bing_GranadaAlhambra.jpg" alt="La Alhambra durante el invierno en Granada" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="La Alhambra durante el invierno en Granada">La Alhambra durante el invierno en Granada</h3>
+                <p class="card-copyright">© David Skinner/Getty Images</p>
+                <p class="card-date">📅 19/02/2026</p>
+                <p class="card-market">🌐 es-ES</p>
+            </div>
+        </div>
+        <div class="card" data-title="Cima Ra Gusela, Passo Giau, Cortina d'Ampezzo, Veneto" data-copyright="© Tomasz Podolski/Getty Images" data-date="19/02/2026" data-filename="bing_GiauPass.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_GiauPass.jpg" data-month="2026-02" data-market="it-IT">
+            <img src="thumbs/bing_GiauPass.jpg" alt="Cima Ra Gusela, Passo Giau, Cortina d'Ampezzo, Veneto" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Cima Ra Gusela, Passo Giau, Cortina d'Ampezzo, Veneto">Cima Ra Gusela, Passo Giau, Cortina d'Ampezzo, Veneto</h3>
+                <p class="card-copyright">© Tomasz Podolski/Getty Images</p>
+                <p class="card-date">📅 19/02/2026</p>
+                <p class="card-market">🌐 it-IT</p>
+            </div>
+        </div>
+        <div class="card" data-title="The Dragon's Eye rock formation at Uttakleiv Beach, Norway" data-copyright="© reisegraf/Getty Images" data-date="19/02/2026" data-filename="bing_DragonsEyeRock.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_DragonsEyeRock.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_DragonsEyeRock.jpg" alt="The Dragon's Eye rock formation at Uttakleiv Beach, Norway" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="The Dragon's Eye rock formation at Uttakleiv Beach, Norway">The Dragon's Eye rock formation at Uttakleiv Beach, Norway</h3>
+                <p class="card-copyright">© reisegraf/Getty Images</p>
+                <p class="card-date">📅 19/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Savana em Piritiba, Bahia" data-copyright="© Gervanio Guimaraes/Getty Images" data-date="18/02/2026" data-filename="bing_SavanaBA.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SavanaBA.jpg" data-month="2026-02" data-market="pt-BR">
+            <img src="thumbs/bing_SavanaBA.jpg" alt="Savana em Piritiba, Bahia" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Savana em Piritiba, Bahia">Savana em Piritiba, Bahia</h3>
+                <p class="card-copyright">© Gervanio Guimaraes/Getty Images</p>
+                <p class="card-date">📅 18/02/2026</p>
+                <p class="card-market">🌐 pt-BR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Przewalski's horses" data-copyright="© Nemyrivskyi Viacheslav/Getty Images" data-date="18/02/2026" data-filename="bing_PrzewalskisHorse.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_PrzewalskisHorse.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_PrzewalskisHorse.jpg" alt="Przewalski's horses" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Przewalski's horses">Przewalski's horses</h3>
+                <p class="card-copyright">© Nemyrivskyi Viacheslav/Getty Images</p>
+                <p class="card-date">📅 18/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="中国春节传统汉字“福”" data-copyright="© DuKai摄影师/Getty Images" data-date="17/02/2026" data-filename="bing_SpringFestivalY26.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SpringFestivalY26.jpg" data-month="2026-02" data-market="zh-CN">
+            <img src="thumbs/bing_SpringFestivalY26.jpg" alt="中国春节传统汉字“福”" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="中国春节传统汉字“福”">中国春节传统汉字“福”</h3>
+                <p class="card-copyright">© DuKai摄影师/Getty Images</p>
+                <p class="card-date">📅 17/02/2026</p>
+                <p class="card-market">🌐 zh-CN</p>
+            </div>
+        </div>
+        <div class="card" data-title="Red lanterns celebrating Chinese New Year" data-copyright="© Gins Wang/Getty Images" data-date="17/02/2026" data-filename="bing_NewYearLantern.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_NewYearLantern.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_NewYearLantern.jpg" alt="Red lanterns celebrating Chinese New Year" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Red lanterns celebrating Chinese New Year">Red lanterns celebrating Chinese New Year</h3>
+                <p class="card-copyright">© Gins Wang/Getty Images</p>
+                <p class="card-date">📅 17/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Rosenmontagszug in Köln, Nordrhein-Westfalen" data-copyright="© mauritius images GmbH/Alamy" data-date="16/02/2026" data-filename="bing_RoseMondayCologne.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_RoseMondayCologne.jpg" data-month="2026-02" data-market="de-DE">
+            <img src="thumbs/bing_RoseMondayCologne.jpg" alt="Rosenmontagszug in Köln, Nordrhein-Westfalen" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Rosenmontagszug in Köln, Nordrhein-Westfalen">Rosenmontagszug in Köln, Nordrhein-Westfalen</h3>
+                <p class="card-copyright">© mauritius images GmbH/Alamy</p>
+                <p class="card-date">📅 16/02/2026</p>
+                <p class="card-market">🌐 de-DE</p>
+            </div>
+        </div>
+        <div class="card" data-title="Lincoln Memorial, Washington, DC" data-copyright="© Westend61/Getty Images" data-date="16/02/2026" data-filename="bing_PresidentsDay.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_PresidentsDay.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_PresidentsDay.jpg" alt="Lincoln Memorial, Washington, DC" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Lincoln Memorial, Washington, DC">Lincoln Memorial, Washington, DC</h3>
+                <p class="card-copyright">© Westend61/Getty Images</p>
+                <p class="card-date">📅 16/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="York, England" data-copyright="© CHUNYIP WONG/iStock/Getty Images" data-date="16/02/2026" data-filename="bing_JorvikVikingFestival2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_JorvikVikingFestival2026.jpg" data-month="2026-02" data-market="en-GB">
+            <img src="thumbs/bing_JorvikVikingFestival2026.jpg" alt="York, England" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="York, England">York, England</h3>
+                <p class="card-copyright">© CHUNYIP WONG/iStock/Getty Images</p>
+                <p class="card-date">📅 16/02/2026</p>
+                <p class="card-market">🌐 en-GB</p>
+            </div>
+        </div>
+        <div class="card" data-title="庆祝春节的龙形灯笼，中国西安" data-copyright="© Pan Hong/Getty Images" data-date="16/02/2026" data-filename="bing_ChineseNewYearEveY26.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_ChineseNewYearEveY26.jpg" data-month="2026-02" data-market="zh-CN">
+            <img src="thumbs/bing_ChineseNewYearEveY26.jpg" alt="庆祝春节的龙形灯笼，中国西安" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="庆祝春节的龙形灯笼，中国西安">庆祝春节的龙形灯笼，中国西安</h3>
+                <p class="card-copyright">© Pan Hong/Getty Images</p>
+                <p class="card-date">📅 16/02/2026</p>
+                <p class="card-market">🌐 zh-CN</p>
+            </div>
+        </div>
+        <div class="card" data-title="Le Grand-Bornand, Haute-Savoie" data-copyright="© JACQUES Pierre/hemis.fr/Alamy" data-date="16/02/2026" data-filename="bing_Bornand.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_Bornand.jpg" data-month="2026-02" data-market="fr-FR">
+            <img src="thumbs/bing_Bornand.jpg" alt="Le Grand-Bornand, Haute-Savoie" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Le Grand-Bornand, Haute-Savoie">Le Grand-Bornand, Haute-Savoie</h3>
+                <p class="card-copyright">© JACQUES Pierre/hemis.fr/Alamy</p>
+                <p class="card-date">📅 16/02/2026</p>
+                <p class="card-market">🌐 fr-FR</p>
+            </div>
+        </div>
+        <div class="card" data-title="アカトビ" data-copyright="© Carl Mckie/500px/Getty Images" data-date="16/02/2026" data-filename="bing_BigGardenBirdwatch2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_BigGardenBirdwatch2026.jpg" data-month="2026-02" data-market="ja-JP">
+            <img src="thumbs/bing_BigGardenBirdwatch2026.jpg" alt="アカトビ" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="アカトビ">アカトビ</h3>
+                <p class="card-copyright">© Carl Mckie/500px/Getty Images</p>
+                <p class="card-date">📅 16/02/2026</p>
+                <p class="card-market">🌐 ja-JP</p>
+            </div>
+        </div>
+        <div class="card" data-title="Banff, Alberta, Canadá" data-copyright="© Herbert Rong/Getty Images" data-date="16/02/2026" data-filename="bing_BanffWinter.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_BanffWinter.jpg" data-month="2026-02" data-market="es-ES">
+            <img src="thumbs/bing_BanffWinter.jpg" alt="Banff, Alberta, Canadá" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Banff, Alberta, Canadá">Banff, Alberta, Canadá</h3>
+                <p class="card-copyright">© Herbert Rong/Getty Images</p>
+                <p class="card-date">📅 16/02/2026</p>
+                <p class="card-market">🌐 es-ES</p>
+            </div>
+        </div>
+        <div class="card" data-title="Statue of Shiva at Murudeshwara Temple, Uttara Kannada, Karnataka" data-copyright="© Amith Nag Photography/Moment/Getty Image" data-date="15/02/2026" data-filename="bing_MahaShivaratri2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_MahaShivaratri2026.jpg" data-month="2026-02" data-market="en-IN">
+            <img src="thumbs/bing_MahaShivaratri2026.jpg" alt="Statue of Shiva at Murudeshwara Temple, Uttara Kannada, Karnataka" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Statue of Shiva at Murudeshwara Temple, Uttara Kannada, Karnataka">Statue of Shiva at Murudeshwara Temple, Uttara Kannada, Karnataka</h3>
+                <p class="card-copyright">© Amith Nag Photography/Moment/Getty Image</p>
+                <p class="card-date">📅 15/02/2026</p>
+                <p class="card-market">🌐 en-IN</p>
+            </div>
+        </div>
+        <div class="card" data-title="Bleeding hearts" data-copyright="© Dorene Hookey/Cavan Images" data-date="14/02/2026" data-filename="bing_ValentineHearts.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_ValentineHearts.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_ValentineHearts.jpg" alt="Bleeding hearts" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Bleeding hearts">Bleeding hearts</h3>
+                <p class="card-copyright">© Dorene Hookey/Cavan Images</p>
+                <p class="card-date">📅 14/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Verona, Veneto" data-copyright="© Jan Hendrik/Shutterstock/Getty Images" data-date="14/02/2026" data-filename="bing_SanValentino.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SanValentino.jpg" data-month="2026-02" data-market="it-IT">
+            <img src="thumbs/bing_SanValentino.jpg" alt="Verona, Veneto" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Verona, Veneto">Verona, Veneto</h3>
+                <p class="card-copyright">© Jan Hendrik/Shutterstock/Getty Images</p>
+                <p class="card-date">📅 14/02/2026</p>
+                <p class="card-market">🌐 it-IT</p>
+            </div>
+        </div>
+        <div class="card" data-title="Escola de samba São Clemente no Sambódromo do Rio de Janeiro, 2016" data-copyright="© YASUYOSHI CHIBA/AFP via Getty Images" data-date="14/02/2026" data-filename="bing_Carnaval26.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_Carnaval26.jpg" data-month="2026-02" data-market="pt-BR">
+            <img src="thumbs/bing_Carnaval26.jpg" alt="Escola de samba São Clemente no Sambódromo do Rio de Janeiro, 2016" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Escola de samba São Clemente no Sambódromo do Rio de Janeiro, 2016">Escola de samba São Clemente no Sambódromo do Rio de Janeiro, 2016</h3>
+                <p class="card-copyright">© YASUYOSHI CHIBA/AFP via Getty Images</p>
+                <p class="card-date">📅 14/02/2026</p>
+                <p class="card-market">🌐 pt-BR</p>
+            </div>
+        </div>
+        <div class="card" data-title="Third Thai-Lao Friendship Bridge connecting Laos and Thailand" data-copyright="© chaiyut samsuk/Getty Images" data-date="13/02/2026" data-filename="bing_FriendshipBridge.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_FriendshipBridge.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_FriendshipBridge.jpg" alt="Third Thai-Lao Friendship Bridge connecting Laos and Thailand" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Third Thai-Lao Friendship Bridge connecting Laos and Thailand">Third Thai-Lao Friendship Bridge connecting Laos and Thailand</h3>
+                <p class="card-copyright">© chaiyut samsuk/Getty Images</p>
+                <p class="card-date">📅 13/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="オリンダ歴史地区, ブラジル" data-copyright="© Robert Pekar/Alamy" data-date="12/02/2026" data-filename="bing_Olinda.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_Olinda.jpg" data-month="2026-02" data-market="ja-JP">
+            <img src="thumbs/bing_Olinda.jpg" alt="オリンダ歴史地区, ブラジル" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="オリンダ歴史地区, ブラジル">オリンダ歴史地区, ブラジル</h3>
+                <p class="card-copyright">© Robert Pekar/Alamy</p>
+                <p class="card-date">📅 12/02/2026</p>
+                <p class="card-market">🌐 ja-JP</p>
+            </div>
+        </div>
+        <div class="card" data-title="Blue-footed booby, Galápagos Islands, Ecuador" data-copyright="© Karine Aigner/TANDEM Stills + Motion" data-date="12/02/2026" data-filename="bing_DarwinBooby.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_DarwinBooby.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_DarwinBooby.jpg" alt="Blue-footed booby, Galápagos Islands, Ecuador" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Blue-footed booby, Galápagos Islands, Ecuador">Blue-footed booby, Galápagos Islands, Ecuador</h3>
+                <p class="card-copyright">© Karine Aigner/TANDEM Stills + Motion</p>
+                <p class="card-date">📅 12/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Innenansicht des Hauptsaals des Kinos Zoo Palast in Berlin" data-copyright="© dpa picture alliance/Alamy" data-date="12/02/2026" data-filename="bing_BerlinaleHall.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_BerlinaleHall.jpg" data-month="2026-02" data-market="de-DE">
+            <img src="thumbs/bing_BerlinaleHall.jpg" alt="Innenansicht des Hauptsaals des Kinos Zoo Palast in Berlin" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Innenansicht des Hauptsaals des Kinos Zoo Palast in Berlin">Innenansicht des Hauptsaals des Kinos Zoo Palast in Berlin</h3>
+                <p class="card-copyright">© dpa picture alliance/Alamy</p>
+                <p class="card-date">📅 12/02/2026</p>
+                <p class="card-market">🌐 de-DE</p>
+            </div>
+        </div>
+        <div class="card" data-title="Vista del atardecer de San Andrés y Playa de Las Teresitas, Tenerife" data-copyright="© EP-stock/Getty Images" data-date="11/02/2026" data-filename="bing_ReinaCarnaval.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_ReinaCarnaval.jpg" data-month="2026-02" data-market="es-ES">
+            <img src="thumbs/bing_ReinaCarnaval.jpg" alt="Vista del atardecer de San Andrés y Playa de Las Teresitas, Tenerife" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Vista del atardecer de San Andrés y Playa de Las Teresitas, Tenerife">Vista del atardecer de San Andrés y Playa de Las Teresitas, Tenerife</h3>
+                <p class="card-copyright">© EP-stock/Getty Images</p>
+                <p class="card-date">📅 11/02/2026</p>
+                <p class="card-market">🌐 es-ES</p>
+            </div>
+        </div>
+        <div class="card" data-title="Détails d’un masque du Carnaval de Nice, Alpes-Maritimes" data-copyright="© litchi cyril photographe/Shutterstock" data-date="11/02/2026" data-filename="bing_NiceFestival.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_NiceFestival.jpg" data-month="2026-02" data-market="fr-FR">
+            <img src="thumbs/bing_NiceFestival.jpg" alt="Détails d’un masque du Carnaval de Nice, Alpes-Maritimes" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Détails d’un masque du Carnaval de Nice, Alpes-Maritimes">Détails d’un masque du Carnaval de Nice, Alpes-Maritimes</h3>
+                <p class="card-copyright">© litchi cyril photographe/Shutterstock</p>
+                <p class="card-date">📅 11/02/2026</p>
+                <p class="card-market">🌐 fr-FR</p>
+            </div>
+        </div>
+        <div class="card" data-title="白梅の花" data-copyright="© EarthScapeImageGraphy/Getty Images" data-date="11/02/2026" data-filename="bing_MitoPlumFestival2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_MitoPlumFestival2026.jpg" data-month="2026-02" data-market="ja-JP">
+            <img src="thumbs/bing_MitoPlumFestival2026.jpg" alt="白梅の花" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="白梅の花">白梅の花</h3>
+                <p class="card-copyright">© EarthScapeImageGraphy/Getty Images</p>
+                <p class="card-date">📅 11/02/2026</p>
+                <p class="card-market">🌐 ja-JP</p>
+            </div>
+        </div>
+        <div class="card" data-title="Salt flats in Badwater Basin, Death Valley National Park, California" data-copyright="© Jim Patterson/TANDEM Stills + Motion" data-date="11/02/2026" data-filename="bing_BadwaterFlats.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_BadwaterFlats.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_BadwaterFlats.jpg" alt="Salt flats in Badwater Basin, Death Valley National Park, California" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Salt flats in Badwater Basin, Death Valley National Park, California">Salt flats in Badwater Basin, Death Valley National Park, California</h3>
+                <p class="card-copyright">© Jim Patterson/TANDEM Stills + Motion</p>
+                <p class="card-date">📅 11/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Islets of Es Vedrà and Es Vedranell, Ibiza, Spain" data-copyright="© L. Apolli/Getty Images" data-date="10/02/2026" data-filename="bing_IbizaIslets.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_IbizaIslets.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_IbizaIslets.jpg" alt="Islets of Es Vedrà and Es Vedranell, Ibiza, Spain" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Islets of Es Vedrà and Es Vedranell, Ibiza, Spain">Islets of Es Vedrà and Es Vedranell, Ibiza, Spain</h3>
+                <p class="card-copyright">© L. Apolli/Getty Images</p>
+                <p class="card-date">📅 10/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Amur leopard cat, Russia" data-copyright="© Valeriy Maleev/naturepl.com" data-date="09/02/2026" data-filename="bing_LeopardCat.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_LeopardCat.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_LeopardCat.jpg" alt="Amur leopard cat, Russia" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Amur leopard cat, Russia">Amur leopard cat, Russia</h3>
+                <p class="card-copyright">© Valeriy Maleev/naturepl.com</p>
+                <p class="card-date">📅 09/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="Corfu at night, Greece" data-copyright="© whitewizzard/Getty Images" data-date="08/02/2026" data-filename="bing_CorfuGreece.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_CorfuGreece.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_CorfuGreece.jpg" alt="Corfu at night, Greece" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Corfu at night, Greece">Corfu at night, Greece</h3>
+                <p class="card-copyright">© whitewizzard/Getty Images</p>
+                <p class="card-date">📅 08/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+        <div class="card" data-title="大通公園, 札幌市" data-copyright="© Reuters/Kimimasa Mayama" data-date="07/02/2026" data-filename="bing_SapporoSnowFestival2026.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SapporoSnowFestival2026.jpg" data-month="2026-02" data-market="ja-JP">
+            <img src="thumbs/bing_SapporoSnowFestival2026.jpg" alt="大通公園, 札幌市" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="大通公園, 札幌市">大通公園, 札幌市</h3>
+                <p class="card-copyright">© Reuters/Kimimasa Mayama</p>
+                <p class="card-date">📅 07/02/2026</p>
+                <p class="card-market">🌐 ja-JP</p>
+            </div>
+        </div>
+        <div class="card" data-title="Salar de Uyuni salt flats in Bolivia" data-copyright="© Abstract Aerial Art/Getty Images" data-date="07/02/2026" data-filename="bing_SalarUyuni.jpg" data-full="https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive/bing_SalarUyuni.jpg" data-month="2026-02" data-market="en-US">
+            <img src="thumbs/bing_SalarUyuni.jpg" alt="Salar de Uyuni salt flats in Bolivia" class="card-img" loading="lazy" onclick="openLightboxFromCard(this)">
+            <div class="card-info">
+                <h3 class="card-title" title="Salar de Uyuni salt flats in Bolivia">Salar de Uyuni salt flats in Bolivia</h3>
+                <p class="card-copyright">© Abstract Aerial Art/Getty Images</p>
+                <p class="card-date">📅 07/02/2026</p>
+                <p class="card-market">🌐 en-US</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Breadcrumb Navigation -->
+    <div class="month-navigation" id="monthNavigation">
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+        <span class="lightbox-nav lightbox-prev" onclick="navigateLightbox(-1)">&#10094;</span>
+        <span class="lightbox-nav lightbox-next" onclick="navigateLightbox(1)">&#10095;</span>
+
+        <img src="" alt="" class="lightbox-img" id="lightboxImg">
+
+        <div class="lightbox-info">
+            <h2 class="lightbox-title" id="lightboxTitle"></h2>
+            <p class="lightbox-copyright" id="lightboxCopyright"></p>
+            <p class="lightbox-date" id="lightboxDate"></p>
+
+            <div class="lightbox-actions">
+                <a href="#" class="lightbox-btn" id="downloadBtn" download>📥 Download</a>
+                <button class="lightbox-btn" onclick="setAsWallpaper()">🖼️ Set as Wallpaper</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Generated with <strong>Bing Wallpaper Manager</strong></p>
+        <p>Images © Microsoft Bing and respective authors</p>
+        <p><a href="https://github.com/npanuhin/Bing-Wallpaper-Archive" target="_blank">Historical archive courtesy of npanuhin</a></p>
+    </footer>
+
+    <script>
+        let currentImageIndex = 0;
+        let images = [];
+        let allCards = [];
+        let currentMonth = 'all';
+        let months = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLastUpdated();
+            allCards = Array.from(document.querySelectorAll('.card'));
+            images = allCards.map(card => card.querySelector('img'));
+            
+            // Extract unique months from cards
+            const monthSet = new Set();
+            allCards.forEach(card => {
+                if (card.dataset.month) {
+                    monthSet.add(card.dataset.month);
+                }
+            });
+            months = Array.from(monthSet).sort().reverse(); // Newest first
+            
+            buildMonthNavigation();
+            
+            // Auto-select current month
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonthNum = String(now.getMonth() + 1).padStart(2, '0');
+            const currentMonthKey = `${currentYear}-${currentMonthNum}`;
+            
+            // Select current month if it exists, otherwise select the newest available month
+            if (months.includes(currentMonthKey)) {
+                selectMonth(currentMonthKey);
+            } else if (months.length > 0) {
+                selectMonth(months[0]); // Select newest month
+            } else {
+                filterGallery();
+            }
+        });
+
+        function buildMonthNavigation() {
+            const navContainer = document.getElementById('monthNavigation');
+            
+            let html = '<h3>📅 Browse by Month</h3><div class="month-breadcrumbs">';
+            
+            // "All" button
+            html += `<button class="month-breadcrumb active" onclick="selectMonth('all')">All Images<span class="month-count">(${allCards.length})</span></button>`;
+            
+            // Month buttons
+            months.forEach(month => {
+                const [year, monthNum] = month.split('-');
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                                   'July', 'August', 'September', 'October', 'November', 'December'];
+                const monthName = monthNames[parseInt(monthNum) - 1];
+                const count = allCards.filter(card => card.dataset.month === month).length;
+                
+                html += `<button class="month-breadcrumb" data-month="${month}" onclick="selectMonth('${month}')">${monthName} ${year}<span class="month-count">(${count})</span></button>`;
+            });
+            
+            html += '</div>';
+            navContainer.innerHTML = html;
+        }
+
+        function selectMonth(month) {
+            currentMonth = month;
+            
+            // Update active state
+            document.querySelectorAll('.month-breadcrumb').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (month === 'all') {
+                document.querySelector('.month-breadcrumb').classList.add('active');
+            } else {
+                document.querySelector(`.month-breadcrumb[data-month="${month}"]`).classList.add('active');
+            }
+            
+            filterGallery();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateLastUpdated() {
+            const now = new Date();
+            const options = {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            document.getElementById('lastUpdated').textContent =
+                'Last updated: ' + now.toLocaleDateString('en-US', options);
+        }
+
+        function filterGallery() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            let visible = 0;
+
+            allCards.forEach(card => {
+                const title = card.dataset.title.toLowerCase();
+                const copyright = card.dataset.copyright.toLowerCase();
+                const date = card.dataset.date.toLowerCase();
+                const cardMonth = card.dataset.month;
+                
+                // Check month filter
+                const monthMatch = currentMonth === 'all' || cardMonth === currentMonth;
+                
+                // Check search query
+                const searchMatch = !query.trim() || 
+                                   title.includes(query) || 
+                                   copyright.includes(query) || 
+                                   date.includes(query);
+
+                if (monthMatch && searchMatch) {
+                    card.style.display = 'block';
+                    visible++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Show/hide no results message
+            const noResults = document.getElementById('noResults');
+            if (visible === 0) {
+                noResults.classList.add('show');
+            } else {
+                noResults.classList.remove('show');
+            }
+
+            // Update counter
+            document.getElementById('resultsCount').textContent =
+                `Showing ${visible} of ${allCards.length} images`;
+        }
+
+        function resetFilter() {
+            document.getElementById('searchInput').value = '';
+            selectMonth('all');
+        }
+
+        function openLightboxFromCard(imgElement) {
+            const card = imgElement.closest('.card');
+            const fullSrc = card.dataset.full;
+            const title = card.dataset.title;
+            const copyright = card.dataset.copyright;
+            const date = card.dataset.date;
+            openLightbox(fullSrc, title, copyright, date);
+        }
+
+        function openLightbox(src, title, copyright, date) {
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightboxImg');
+
+            lightboxImg.src = src;
+            document.getElementById('lightboxTitle').textContent = title;
+            document.getElementById('lightboxCopyright').textContent = copyright;
+            document.getElementById('lightboxDate').textContent = date;
+            document.getElementById('downloadBtn').href = src;
+
+            // Find the card that was clicked using full URL
+            const visibleCards = allCards.filter(card => card.style.display !== 'none');
+            let clickedIndex = 0;
+            
+            visibleCards.forEach((c, idx) => {
+                if (c.dataset.full === src) {
+                    clickedIndex = idx;
+                }
+            });
+
+            currentImageIndex = clickedIndex;
+            images = visibleCards;
+
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function navigateLightbox(direction) {
+            const visibleCards = allCards.filter(card => card.style.display !== 'none');
+            currentImageIndex += direction;
+            if (currentImageIndex < 0) currentImageIndex = visibleCards.length - 1;
+            if (currentImageIndex >= visibleCards.length) currentImageIndex = 0;
+
+            const card = visibleCards[currentImageIndex];
+            const img = card.querySelector('img');
+
+            openLightbox(
+                card.dataset.full,
+                card.dataset.title,
+                card.dataset.copyright,
+                card.dataset.date
+            );
+        }
+
+        function setAsWallpaper() {
+            const src = document.getElementById('lightboxImg').src;
+
+            // Try different methods based on system
+            if (navigator.userAgent.includes('Linux')) {
+                // For Linux with GNOME
+                alert('To set as wallpaper:\n\n' +
+                      'GNOME: gsettings set org.gnome.desktop.background picture-uri "file://' + src + '"\n\n' +
+                      'Or use system settings to select this image.');
+            } else {
+                alert('To set as wallpaper:\n\n' +
+                      '1. Right-click on the desktop\n' +
+                      '2. Choose "Change background"\n' +
+                      '3. Select this image from the folder:\n' + src);
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            const lightbox = document.getElementById('lightbox');
+            if (!lightbox.classList.contains('active')) return;
+
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft') navigateLightbox(-1);
+            if (e.key === 'ArrowRight') navigateLightbox(1);
+        });
+
+        // Close lightbox when clicking outside
+        document.getElementById('lightbox').addEventListener('click', function(e) {
+            if (e.target === this) closeLightbox();
+        });
+    </script>
+</body>
+</html>
