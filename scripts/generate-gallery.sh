@@ -31,6 +31,47 @@ if [ "$TXT_COUNT" -eq 0 ]; then
     exit 1
 fi
 
+# Load releases manifest if exists
+MANIFEST="$WALLPAPER_DIR/releases-manifest.json"
+RELEASE_PREFIX="wallpapers"
+MANIFEST_VERSION=1
+
+if [ -f "$MANIFEST" ]; then
+    # Check if manifest is v2 (monthly)
+    manifest_version=$(jq -r '.version // 1' "$MANIFEST" 2>/dev/null)
+    if [ "$manifest_version" = "2" ]; then
+        RELEASE_PREFIX=$(jq -r '.release_prefix // "wallpapers"' "$MANIFEST" 2>/dev/null)
+        MANIFEST_VERSION=2
+        echo "📦 Using monthly release manifest (v2)"
+    fi
+fi
+
+# Function to get release URL for a given date
+# Args: date (YYYYMMDD), filename
+get_release_url() {
+    local date="$1"
+    local filename="$2"
+    
+    if [ "$MANIFEST_VERSION" = "2" ]; then
+        # Extract YYYY-MM from date
+        local year="${date:0:4}"
+        local month="${date:4:2}"
+        local month_key="${year}-${month}"
+        
+        # Lookup from manifest
+        local month_url
+        month_url=$(jq -r ".months[\"$month_key\"].url // \"\"" "$MANIFEST" 2>/dev/null)
+        
+        if [ -n "$month_url" ]; then
+            echo "${month_url}/${filename}"
+            return
+        fi
+    fi
+    
+    # Fallback: use base URL pattern
+    echo "${RELEASE_BASE_URL}/${filename}"
+}
+
 # Create thumbnail directory
 mkdir -p "$THUMB_DIR"
 
@@ -113,7 +154,8 @@ generate_cards_by_month() {
         [ -z "$market" ] && market="Unknown"
 
         local thumb_filename="thumbs/$jpg_basename"
-        local full_release_url="${RELEASE_BASE_URL}/${jpg_basename}"
+        local full_release_url
+        full_release_url=$(get_release_url "$date" "$jpg_basename")
 
         cat << CARD
         <div class="card" data-title="$title" data-copyright="$copyright" data-date="$date_fmt" data-filename="$jpg_basename" data-full="$full_release_url" data-month="${month_year_key}" data-market="$market">
