@@ -1,0 +1,5 @@
+do-sync.sh
+config.conf
+scripts/.archive-cache.json
+scripts/.release-*.json
+__pycache__
