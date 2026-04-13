@@ -757,6 +757,19 @@ cat >> "$OUTPUT" << 'HTMLMID2'
         let allCards = [];
         let currentMonth = 'all';
         let months = [];
+
+        const MARKET_NAMES = {
+            'en-US': 'United States', 'en-GB': 'United Kingdom', 'en-CA': 'Canada (EN)',
+            'en-AU': 'Australia', 'en-IN': 'India', 'it-IT': 'Italy', 'es-ES': 'Spain',
+            'pt-BR': 'Brazil', 'fr-FR': 'France', 'fr-CA': 'Canada (FR)',
+            'de-DE': 'Germany', 'ja-JP': 'Japan', 'zh-CN': 'China'
+        };
+
+        const MARKET_FLAGS = {
+            'en-US': '🇺🇸', 'en-GB': '🇬🇧', 'en-CA': '🇨🇦', 'en-AU': '🇦🇺',
+            'en-IN': '🇮🇳', 'it-IT': '🇮🇹', 'es-ES': '🇪🇸', 'pt-BR': '🇧🇷',
+            'fr-FR': '🇫🇷', 'fr-CA': '🇨🇦', 'de-DE': '🇩🇪', 'ja-JP': '🇯🇵', 'zh-CN': '🇨🇳'
+        };
 HTMLMID2
 
 cat >> "$OUTPUT" << 'HTMLFOOT'
@@ -851,12 +864,6 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
 
         function buildMarketFilter() {
             const select = document.getElementById('marketFilter');
-            const marketNames = {
-                'en-US': 'United States', 'en-GB': 'United Kingdom', 'en-CA': 'Canada (EN)',
-                'en-AU': 'Australia', 'en-IN': 'India', 'it-IT': 'Italy', 'es-ES': 'Spain',
-                'pt-BR': 'Brazil', 'fr-FR': 'France', 'fr-CA': 'Canada (FR)',
-                'de-DE': 'Germany', 'ja-JP': 'Japan', 'zh-CN': 'China'
-            };
 
             // Extract unique markets from cards
             const marketSet = new Set();
@@ -870,7 +877,8 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
             sortedMarkets.forEach(market => {
                 const option = document.createElement('option');
                 option.value = market;
-                option.textContent = marketNames[market] || market;
+                const flag = MARKET_FLAGS[market] || '🌐';
+                option.textContent = `${flag} ${MARKET_NAMES[market] || market}`;
                 select.appendChild(option);
             });
         }
@@ -947,7 +955,12 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
             document.getElementById('lightboxCopyright').textContent = copyright;
             document.getElementById('lightboxDate').textContent = date;
             const marketEl = document.getElementById('lightboxMarket');
-            marketEl.textContent = market && market !== 'Unknown' ? `🌐 ${market}` : '';
+            if (market && market !== 'Unknown') {
+                const flag = MARKET_FLAGS[market] || '🌐';
+                marketEl.textContent = `${flag} ${MARKET_NAMES[market] || market}`;
+            } else {
+                marketEl.textContent = '';
+            }
             document.getElementById('downloadBtn').href = src;
 
             // Find the card that was clicked using full URL
