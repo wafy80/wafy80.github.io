@@ -249,8 +249,31 @@ cat > "$OUTPUT" << 'HTMLHEAD'
             max-width: 1400px;
             margin: 0 auto 30px;
             display: flex;
-            gap: 15px;
+            gap: 12px;
             flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .market-select {
+            padding: 14px 16px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            font-size: 14px;
+            background: var(--card-bg);
+            color: var(--text);
+            cursor: pointer;
+            min-width: 180px;
+            transition: border-color 0.3s;
+        }
+
+        .market-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .market-select option {
+            background: var(--card-bg);
+            color: var(--text);
         }
 
         .search-box {
@@ -465,6 +488,11 @@ cat > "$OUTPUT" << 'HTMLHEAD'
             font-size: 0.95em;
         }
 
+        .lightbox-market {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
         .lightbox-close {
             position: absolute;
             top: 20px;
@@ -553,6 +581,7 @@ cat > "$OUTPUT" << 'HTMLHEAD'
             .gallery { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
             .search-container { flex-direction: column; }
             .search-box { min-width: 100%; }
+            .market-select { min-width: 100%; width: 100%; }
             .lightbox-nav { font-size: 2em; padding: 10px; }
             .lightbox-close { font-size: 2em; top: 10px; right: 15px; }
             .month-breadcrumbs { flex-wrap: wrap; }
@@ -661,6 +690,9 @@ cat >> "$OUTPUT" << 'HTMLMID'
     </div>
 
     <div class="search-container">
+        <select class="market-select" id="marketFilter" onchange="filterGallery()">
+            <option value="all">🌐 All Markets</option>
+        </select>
         <input type="text" class="search-box" id="searchInput" placeholder="Search by title, copyright, or date..." onkeyup="filterGallery()">
         <button class="search-btn" onclick="filterGallery()">🔍 Search</button>
         <button class="filter-btn" onclick="resetFilter()">🔄 Show All</button>
@@ -701,6 +733,7 @@ cat >> "$OUTPUT" << 'HTMLMID2'
             <h2 class="lightbox-title" id="lightboxTitle"></h2>
             <p class="lightbox-copyright" id="lightboxCopyright"></p>
             <p class="lightbox-date" id="lightboxDate"></p>
+            <p class="lightbox-market" id="lightboxMarket"></p>
 
             <div class="lightbox-actions">
                 <a href="#" class="lightbox-btn" id="downloadBtn" download>📥 Download</a>
@@ -742,8 +775,9 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
                 }
             });
             months = Array.from(monthSet).sort().reverse(); // Newest first
-            
+
             buildMonthNavigation();
+            buildMarketFilter();
             
             // Auto-select current month
             const now = new Date();
@@ -815,8 +849,35 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
                 'Last updated: ' + now.toLocaleDateString('en-US', options);
         }
 
+        function buildMarketFilter() {
+            const select = document.getElementById('marketFilter');
+            const marketNames = {
+                'en-US': 'United States', 'en-GB': 'United Kingdom', 'en-CA': 'Canada (EN)',
+                'en-AU': 'Australia', 'en-IN': 'India', 'it-IT': 'Italy', 'es-ES': 'Spain',
+                'pt-BR': 'Brazil', 'fr-FR': 'France', 'fr-CA': 'Canada (FR)',
+                'de-DE': 'Germany', 'ja-JP': 'Japan', 'zh-CN': 'China'
+            };
+
+            // Extract unique markets from cards
+            const marketSet = new Set();
+            allCards.forEach(card => {
+                if (card.dataset.market && card.dataset.market !== 'Unknown') {
+                    marketSet.add(card.dataset.market);
+                }
+            });
+
+            const sortedMarkets = Array.from(marketSet).sort();
+            sortedMarkets.forEach(market => {
+                const option = document.createElement('option');
+                option.value = market;
+                option.textContent = marketNames[market] || market;
+                select.appendChild(option);
+            });
+        }
+
         function filterGallery() {
             const query = document.getElementById('searchInput').value.toLowerCase();
+            const market = document.getElementById('marketFilter').value;
             let visible = 0;
 
             allCards.forEach(card => {
@@ -824,17 +885,21 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
                 const copyright = card.dataset.copyright.toLowerCase();
                 const date = card.dataset.date.toLowerCase();
                 const cardMonth = card.dataset.month;
-                
+                const cardMarket = card.dataset.market;
+
                 // Check month filter
                 const monthMatch = currentMonth === 'all' || cardMonth === currentMonth;
-                
+
+                // Check market filter
+                const marketMatch = market === 'all' || cardMarket === market;
+
                 // Check search query
-                const searchMatch = !query.trim() || 
-                                   title.includes(query) || 
-                                   copyright.includes(query) || 
+                const searchMatch = !query.trim() ||
+                                   title.includes(query) ||
+                                   copyright.includes(query) ||
                                    date.includes(query);
 
-                if (monthMatch && searchMatch) {
+                if (monthMatch && marketMatch && searchMatch) {
                     card.style.display = 'block';
                     visible++;
                 } else {
@@ -851,12 +916,15 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
             }
 
             // Update counter
+            const marketLabel = market === 'all' ? '' : ` in ${market}`;
+            const monthLabel = currentMonth === 'all' ? '' : ` (${currentMonth})`;
             document.getElementById('resultsCount').textContent =
-                `Showing ${visible} of ${allCards.length} images`;
+                `Showing ${visible} of ${allCards.length} images${marketLabel}${monthLabel}`;
         }
 
         function resetFilter() {
             document.getElementById('searchInput').value = '';
+            document.getElementById('marketFilter').value = 'all';
             selectMonth('all');
         }
 
@@ -866,10 +934,11 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
             const title = card.dataset.title;
             const copyright = card.dataset.copyright;
             const date = card.dataset.date;
-            openLightbox(fullSrc, title, copyright, date);
+            const market = card.dataset.market;
+            openLightbox(fullSrc, title, copyright, date, market);
         }
 
-        function openLightbox(src, title, copyright, date) {
+        function openLightbox(src, title, copyright, date, market) {
             const lightbox = document.getElementById('lightbox');
             const lightboxImg = document.getElementById('lightboxImg');
 
@@ -877,6 +946,8 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
             document.getElementById('lightboxTitle').textContent = title;
             document.getElementById('lightboxCopyright').textContent = copyright;
             document.getElementById('lightboxDate').textContent = date;
+            const marketEl = document.getElementById('lightboxMarket');
+            marketEl.textContent = market && market !== 'Unknown' ? `🌐 ${market}` : '';
             document.getElementById('downloadBtn').href = src;
 
             // Find the card that was clicked using full URL
@@ -914,7 +985,8 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
                 card.dataset.full,
                 card.dataset.title,
                 card.dataset.copyright,
-                card.dataset.date
+                card.dataset.date,
+                card.dataset.market
             );
         }
 
@@ -957,7 +1029,10 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
             const title = document.getElementById('lightboxTitle').textContent;
             const copyright = document.getElementById('lightboxCopyright').textContent;
             const date = document.getElementById('lightboxDate').textContent;
-            const info = `${title}\n${copyright}\n${date}`;
+            const market = document.getElementById('lightboxMarket').textContent;
+            const parts = [title, copyright, date];
+            if (market) parts.push(market);
+            const info = parts.join('\n');
             navigator.clipboard.writeText(info).then(() => {
                 showToast('Image info copied!');
             }).catch(() => {
