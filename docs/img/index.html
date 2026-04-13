@@ -318,12 +318,13 @@
         .lightbox-actions {
             margin-top: 20px;
             display: flex;
-            gap: 15px;
+            flex-wrap: wrap;
+            gap: 12px;
             justify-content: center;
         }
 
         .lightbox-btn {
-            padding: 12px 25px;
+            padding: 10px 20px;
             background: var(--primary);
             color: white;
             border: none;
@@ -332,6 +333,8 @@
             font-size: 14px;
             font-weight: 600;
             transition: all 0.3s;
+            white-space: nowrap;
+            flex-shrink: 0;
             text-decoration: none;
             display: inline-block;
         }
@@ -5803,7 +5806,21 @@
 
         function openFullImage() {
             const src = document.getElementById('lightboxImg').src;
-            window.open(src, '_blank');
+            const title = document.getElementById('lightboxTitle').textContent;
+            const copyright = document.getElementById('lightboxCopyright').textContent;
+
+            // GitHub Releases forces download via Content-Disposition header.
+            // Open a wrapper page with the image embedded to bypass this.
+            const html = `<!DOCTYPE html><html><head><title>${title}</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;padding:0}body{background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;color:#fff;font-family:sans-serif;padding:20px}img{max-width:100%;max-height:90vh;object-fit:contain}.info{text-align:center;margin-top:15px;opacity:0.8;font-size:14px}</style></head><body><img src="${src}" alt="${title}"><div class="info"><strong>${title}</strong><br>${copyright}</div></body></html>`;
+
+            const w = window.open('', '_blank');
+            if (w) {
+                w.document.write(html);
+                w.document.close();
+            } else {
+                // Popup blocked fallback
+                window.location.href = src;
+            }
         }
 
         function copyImageUrl() {
