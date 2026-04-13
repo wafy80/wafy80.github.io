@@ -374,6 +374,29 @@ cat > "$OUTPUT" << 'HTMLHEAD'
             color: var(--text-muted);
         }
 
+        .toast-notification {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 6px 20px rgba(0,120,212,0.4);
+            opacity: 0;
+            z-index: 100000;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast-notification.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
         .no-results {
             max-width: 1400px;
             margin: 50px auto;
@@ -678,7 +701,10 @@ cat >> "$OUTPUT" << 'HTMLMID2'
 
             <div class="lightbox-actions">
                 <a href="#" class="lightbox-btn" id="downloadBtn" download>📥 Download</a>
-                <button class="lightbox-btn" onclick="setAsWallpaper()">🖼️ Set as Wallpaper</button>
+                <button class="lightbox-btn" onclick="openFullImage()">🔍 Open Full</button>
+                <button class="lightbox-btn" onclick="copyImageUrl()">� Copy URL</button>
+                <button class="lightbox-btn" onclick="copyImageInfo()">📝 Copy Info</button>
+                <button class="lightbox-btn" onclick="shareImage()">🔗 Share</button>
             </div>
         </div>
     </div>
@@ -889,21 +915,69 @@ cat >> "$OUTPUT" << 'HTMLFOOT'
             );
         }
 
-        function setAsWallpaper() {
+        function openFullImage() {
+            const src = document.getElementById('lightboxImg').src;
+            window.open(src, '_blank');
+        }
+
+        function copyImageUrl() {
+            const src = document.getElementById('lightboxImg').src;
+            navigator.clipboard.writeText(src).then(() => {
+                showToast('Image URL copied to clipboard!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const ta = document.createElement('textarea');
+                ta.value = src;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('Image URL copied!');
+            });
+        }
+
+        function copyImageInfo() {
+            const title = document.getElementById('lightboxTitle').textContent;
+            const copyright = document.getElementById('lightboxCopyright').textContent;
+            const date = document.getElementById('lightboxDate').textContent;
+            const info = `${title}\n${copyright}\n${date}`;
+            navigator.clipboard.writeText(info).then(() => {
+                showToast('Image info copied!');
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = info;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('Image info copied!');
+            });
+        }
+
+        function shareImage() {
+            const title = document.getElementById('lightboxTitle').textContent;
             const src = document.getElementById('lightboxImg').src;
 
-            // Try different methods based on system
-            if (navigator.userAgent.includes('Linux')) {
-                // For Linux with GNOME
-                alert('To set as wallpaper:\n\n' +
-                      'GNOME: gsettings set org.gnome.desktop.background picture-uri "file://' + src + '"\n\n' +
-                      'Or use system settings to select this image.');
+            if (navigator.share) {
+                navigator.share({ title: title, url: src }).catch(() => {});
             } else {
-                alert('To set as wallpaper:\n\n' +
-                      '1. Right-click on the desktop\n' +
-                      '2. Choose "Change background"\n' +
-                      '3. Select this image from the folder:\n' + src);
+                copyImageUrl();
             }
+        }
+
+        function showToast(message) {
+            const existing = document.querySelector('.toast-notification');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
         }
 
         // Keyboard navigation
