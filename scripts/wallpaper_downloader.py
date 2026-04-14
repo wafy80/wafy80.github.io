@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Bing Wallpaper Downloader - Cross-platform desktop app
-Downloads Bing wallpapers from GitHub Releases and updates them periodically.
+Downloads Bing wallpapers from GitHub Releases (monthly archives) and updates them periodically.
 Works on Windows, macOS, and Linux.
 """
 
@@ -22,17 +22,51 @@ import ssl
 
 # Release configuration
 RELEASE_MANIFEST_URL = "https://wafy80.github.io/img/releases-manifest.json"
-RELEASE_BASE_URL = "https://github.com/wafy80/wafy80.github.io/releases/download/wallpapers-archive"
+GITHUB_API_RELEASES = "https://api.github.com/repos/wafy80/wafy80.github.io/releases/tags"
 
 
 class WallpaperDownloader:
-    """Core downloader - handles downloading from GitHub Releases."""
+    """Core downloader - handles downloading from GitHub Releases (monthly archives)."""
+
+    CACHE_DURATION = 3600  # Cache wallpaper index for 1 hour (seconds)
 
     def __init__(self, download_dir):
         self.download_dir = Path(download_dir)
         self.download_dir.mkdir(parents=True, exist_ok=True)
         self.manifest = None
+        self.wallpaper_index = {}  # filename -> download_url
         self._load_manifest()
+
+    @property
+    def _cache_file(self):
+        return self.download_dir / ".wallpaper_index_cache.json"
+
+    def _load_cache(self):
+        """Load cached wallpaper index if it exists and is not expired."""
+        try:
+            if not self._cache_file.exists():
+                return False
+            with open(self._cache_file, "r") as f:
+                cache = json.load(f)
+            age = time.time() - cache.get("timestamp", 0)
+            if age < self.CACHE_DURATION:
+                self.wallpaper_index = cache.get("index", {})
+                return True
+        except Exception:
+            pass
+        return False
+
+    def _save_cache(self):
+        """Save wallpaper index to local cache."""
+        try:
+            cache = {
+                "timestamp": time.time(),
+                "index": self.wallpaper_index
+            }
+            with open(self._cache_file, "w") as f:
+                json.dump(cache, f)
+        except Exception:
+            pass
 
     def _load_manifest(self):
         """Download and parse the releases manifest."""
@@ -48,21 +82,66 @@ class WallpaperDownloader:
         except Exception as e:
             raise RuntimeError(f"Failed to load manifest: {e}")
 
+    def _fetch_release_assets(self, month_tag):
+        """Fetch asset list from a monthly release via GitHub API."""
+        url = f"{GITHUB_API_RELEASES}/{month_tag}"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            context = ssl.create_default_context()
+            with urllib.request.urlopen(req, timeout=30, context=context) as response:
+                data = json.loads(response.read().decode())
+                assets = data.get("assets", [])
+                return {asset["name"]: asset["browser_download_url"] for asset in assets}
+        except Exception as e:
+            raise RuntimeError(f"Failed to fetch assets for {month_tag}: {e}")
+
+    def _build_wallpaper_index(self, force_refresh=False):
+        """Build a complete wallpaper index from all monthly releases."""
+        if not self.manifest or "months" not in self.manifest:
+            # Fallback for old manifest format
+            if self.manifest and "images" in self.manifest:
+                base = self.manifest.get("base_url", "")
+                self.wallpaper_index = {k: f"{base}/{v}" for k, v in self.manifest["images"].items()}
+                return
+
+        # Try cache first (unless force refresh)
+        if not force_refresh and self._load_cache():
+            return
+
+        # Clear cache if forcing refresh
+        if force_refresh:
+            try:
+                self._cache_file.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+        # Build from remote
+        self.wallpaper_index = {}
+        months = self.manifest.get("months", {})
+        for month, info in sorted(months.items(), reverse=True):
+            month_tag = info.get("tag", "")
+            if not month_tag:
+                continue
+            try:
+                assets = self._fetch_release_assets(month_tag)
+                self.wallpaper_index.update(assets)
+            except Exception as e:
+                print(f"Warning: Could not fetch assets for {month}: {e}")
+
+        # Save cache
+        self._save_cache()
+
     def get_available_wallpapers(self):
-        """Return list of available wallpapers from manifest."""
-        if not self.manifest or "images" not in self.manifest:
-            return []
-        return sorted(self.manifest["images"].keys(), reverse=True)
+        """Return list of available wallpapers across all monthly releases."""
+        if not self.wallpaper_index:
+            self._build_wallpaper_index()
+        return sorted(self.wallpaper_index.keys(), reverse=True)
 
     def get_download_url(self, filename):
         """Get the full download URL for a wallpaper."""
-        if not self.manifest:
-            return None
-        base = self.manifest.get("base_url", RELEASE_BASE_URL)
-        asset = self.manifest["images"].get(filename)
-        if asset:
-            return f"{base}/{asset}"
-        return None
+        if not self.wallpaper_index:
+            self._build_wallpaper_index()
+        return self.wallpaper_index.get(filename)
 
     def download_image(self, filename, callback=None):
         """Download a single wallpaper image."""
@@ -91,7 +170,7 @@ class WallpaperDownloader:
             raise RuntimeError(f"Failed to download {filename}: {e}")
 
     def download_all(self, progress_callback=None):
-        """Download all wallpapers from release."""
+        """Download all wallpapers from all monthly releases."""
         wallpapers = self.get_available_wallpapers()
         if not wallpapers:
             raise RuntimeError("No wallpapers found in manifest")
@@ -182,7 +261,7 @@ class App:
 
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Bing Wallpaper Downloader - GitHub Releases")
+        self.root.title("Bing Wallpaper Downloader - Monthly Releases")
         self.root.geometry("700x600")
         self.root.minsize(550, 450)
 
@@ -389,8 +468,9 @@ class App:
 
         self.status_var.set("Checking...")
         try:
-            # Reload manifest
+            # Reload manifest and force refresh wallpaper index
             self.downloader._load_manifest()
+            self.downloader._build_wallpaper_index(force_refresh=True)
             available = self.downloader.get_available_wallpapers()
 
             local_files = {f.name for f in Path(self.dir_var.get()).glob("bing-*.jpg")}
@@ -495,7 +575,7 @@ class App:
         self._update_counts()
         self._log("Bing Wallpaper Downloader started")
         self._log(f"Platform: {sys.platform}")
-        self._log(f"Source: GitHub Releases (wallpapers-archive)")
+        self._log(f"Source: GitHub Releases (monthly archives)")
 
         # Auto-start if enabled
         if self.settings.auto_start:
